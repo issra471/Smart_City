@@ -1,0 +1,12 @@
+{% extends "admin/base.html" %}
+{% block title %}Modules · Administration{% endblock %}
+{% block admin_content %}
+<main class="content">
+  <div class="page-title"><div><p class="eyebrow">Gestion</p><h1>Modules</h1><p class="muted">Vue d'ensemble des données et accès aux outils de gestion.</p></div></div>
+  <div class="cards">
+    {% for label, count, route, admin_url in modules %}
+      <article><span class="tag">MODULE</span><h3>{{ label }}</h3><p>{{ count }} élément(s) enregistré(s).</p><a href="{% if route == 'reports' %}{% url 'accounts:admin_reports' %}{% elif route == 'events' %}{% url 'accounts:admin_events' %}{% else %}{% url admin_url %}{% endif %}">Ouvrir la gestion →</a></article>
+    {% endfor %}
+  </div>
+</main>
+{% endblock %}

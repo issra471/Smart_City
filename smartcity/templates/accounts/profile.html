@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Mon profil · Smart City{% endblock %}
+{% block content %}
+<div class="portal">
+  {% include "includes/citizen_sidebar.html" %}
+  <div class="portal-main">
+    <main class="content">
+      <div class="profile-hero">
+        <div>
+          <p class="eyebrow">Mon espace</p>
+          <h1>Mon profil</h1>
+          <p class="muted">Gérez vos informations personnelles et les coordonnées de votre compte.</p>
+        </div>
+        <div class="profile-hero-image" aria-hidden="true"></div>
+      </div>
+
+      <section class="profile-main" aria-labelledby="personal-title">
+        <div class="profile-card-heading profile-card-heading-action">
+          <div class="profile-aside-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 21a7.5 7.5 0 0 1 15 0"/></svg>
+          </div>
+          <div>
+            <h2 id="personal-title">Informations personnelles</h2>
+            <p>Consultez les informations associées à votre compte.</p>
+          </div>
+          <button class="button profile-edit-button" type="button" data-profile-open aria-haspopup="dialog" aria-controls="profile-modal">
+            Modifier mon profil <span aria-hidden="true">→</span>
+          </button>
+        </div>
+
+        <div class="profile-view">
+          <div class="profile-identity">
+            <div class="avatar">{{ user.username|slice:":2"|upper }}</div>
+            <div>
+              <strong>{{ user.get_full_name|default:user.username }}</strong>
+              <span class="profile-badge"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3 3 7-7"/></svg> Compte citoyen</span>
+              <small><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4.5" width="14" height="13" rx="2"/><path d="M6 2.5v4M14 2.5v4M3 8.5h14"/></svg> Membre depuis le {{ user.date_joined|date:"d F Y" }}</small>
+            </div>
+          </div>
+
+          <dl class="profile-readonly-grid">
+            <div>
+              <dt><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>Prénom</dt>
+              <dd>{{ user.first_name|default:"Non renseigné" }}</dd>
+            </div>
+            <div>
+              <dt><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>Nom</dt>
+              <dd>{{ user.last_name|default:"Non renseigné" }}</dd>
+            </div>
+            <div>
+              <dt><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>Adresse électronique</dt>
+              <dd>{{ user.email|default:"Non renseignée" }}</dd>
+            </div>
+            <div>
+              <dt><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3l1.5 4-2 1.5a14 14 0 0 0 5 5L16 12.5 20 14v3c0 1.1-.9 2-2 2C10.3 19 5 13.7 5 7c0-1.7.9-3 2-3Z"/></svg>Téléphone</dt>
+              <dd>{{ user.profile.phone_number|default:"Non renseigné" }}</dd>
+            </div>
+            {% if user.profile.date_of_birth %}
+              <div>
+                <dt><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/></svg>Date de naissance</dt>
+                <dd>{{ user.profile.date_of_birth|date:"d/m/Y" }}</dd>
+              </div>
+            {% endif %}
+            {% if user.profile.address %}
+              <div>
+                <dt><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10 12 4l8 6v9H4Z"/><path d="M9 19v-5h6v5"/></svg>Adresse complète</dt>
+                <dd>{{ user.profile.address }}</dd>
+              </div>
+            {% endif %}
+            {% if user.profile.city %}
+              <div>
+                <dt><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>Ville / Commune</dt>
+                <dd>{{ user.profile.city }}</dd>
+              </div>
+            {% endif %}
+          </dl>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="profile-modal" id="profile-modal" hidden>
+  <div class="profile-modal-overlay" data-profile-close></div>
+  <section class="profile-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title" aria-describedby="profile-modal-description">
+    <div class="profile-modal-header">
+      <div class="profile-modal-title">
+        <div class="profile-edit-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="m4 16-.8 4.8L8 20l10.5-10.5a2.8 2.8 0 0 0-4-4L4 16Z"/><path d="m13 7 4 4"/></svg>
+        </div>
+        <div>
+          <h2 id="profile-modal-title">Modifier mon profil</h2>
+          <p id="profile-modal-description">Mettez à jour vos informations personnelles.</p>
+        </div>
+      </div>
+      <button class="profile-modal-close" type="button" data-profile-close aria-label="Fermer la fenêtre">×</button>
+    </div>
+
+    <form method="post" class="profile-form profile-modal-form" data-profile-form>
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <section class="profile-modal-section" aria-labelledby="profile-personal-fields">
+        <h3 id="profile-personal-fields">Informations personnelles</h3>
+        <div class="profile-fields">
+          <label for="{{ form.first_name.id_for_label }}">
+            <span class="field-label">{{ form.first_name.label }} <span class="required-mark">*</span></span>
+            {{ form.first_name }}
+            {{ form.first_name.errors }}
+          </label>
+          <label for="{{ form.last_name.id_for_label }}">
+            <span class="field-label">{{ form.last_name.label }} <span class="required-mark">*</span></span>
+            {{ form.last_name }}
+            {{ form.last_name.errors }}
+          </label>
+          <label for="{{ form.date_of_birth.id_for_label }}">
+            <span class="field-label">{{ form.date_of_birth.label }}</span>
+            {{ form.date_of_birth }}
+            {{ form.date_of_birth.errors }}
+          </label>
+          <label for="{{ form.phone_number.id_for_label }}">
+            <span class="field-label">{{ form.phone_number.label }}</span>
+            <span class="profile-input-wrap">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3l1.5 4-2 1.5a14 14 0 0 0 5 5L16 12.5 20 14v3c0 1.1-.9 2-2 2C10.3 19 5 13.7 5 7c0-1.7.9-3 2-3Z"/></svg>
+              {{ form.phone_number }}
+            </span>
+            {{ form.phone_number.errors }}
+          </label>
+        </div>
+      </section>
+      <section class="profile-modal-section" aria-labelledby="profile-contact-fields">
+        <h3 id="profile-contact-fields">Coordonnées</h3>
+        <div class="profile-fields">
+          <label class="profile-email profile-field-full" for="{{ form.email.id_for_label }}">
+            <span class="field-label">{{ form.email.label }} <span class="required-mark">*</span></span>
+            {{ form.email }}
+            {{ form.email.errors }}
+          </label>
+          <label class="profile-field-full" for="{{ form.address.id_for_label }}">
+            <span class="field-label">{{ form.address.label }}</span>
+            {{ form.address }}
+            {{ form.address.errors }}
+          </label>
+          <label for="{{ form.city.id_for_label }}">
+            <span class="field-label">{{ form.city.label }}</span>
+            {{ form.city }}
+            {{ form.city.errors }}
+          </label>
+        </div>
+      </section>
+      <section class="profile-account-details" aria-labelledby="profile-account-fields">
+        <h3 id="profile-account-fields">Informations du compte</h3>
+        <dl>
+          <div><dt>Nom d'utilisateur</dt><dd>{{ user.username }}</dd></div>
+          <div><dt>Date d'inscription</dt><dd>{{ user.date_joined|date:"d/m/Y" }}</dd></div>
+          <div><dt>Type de compte</dt><dd>Compte citoyen</dd></div>
+        </dl>
+      </section>
+      <div class="form-actions">
+        <button class="button secondary" type="button" data-profile-close>Annuler</button>
+        <button class="button" type="submit" data-profile-submit>Enregistrer les modifications <span aria-hidden="true">→</span></button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

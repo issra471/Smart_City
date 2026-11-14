@@ -1,0 +1,107 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Smart City : des services utiles et proches de chez vous.">
+  <meta name="theme-color" content="#f7f6ef">
+  <title>{% block title %}Smart City{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3">
+</head>
+<body>
+  {% block site_header %}
+  <header class="header">
+    <div class="{% if user.is_authenticated and request.path != '/' %}portal-header-in{% else %}shell{% endif %} header-in">
+      <a href="{% url 'home' %}" class="logo"><i>à</i><span>Smart City</span></a>
+      {% if not user.is_authenticated or request.path == "/" %}
+        <nav aria-label="Navigation principale">
+          <a href="{% url 'home' %}#services">Nos services</a>
+          <a href="{% url 'home' %}#fonctionnement">Comment ça marche ?</a>
+          <a href="{% url 'home' %}#engagements">Nos engagements</a>
+        </nav>
+      {% endif %}
+      <div class="header-actions">
+        {% if user.is_authenticated %}
+          <a href="{% url 'dashboard' %}">Mon espace</a>
+          <form method="post" action="{% url 'accounts:logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="link">Se déconnecter</button>
+          </form>
+        {% else %}
+          <a href="{% url 'accounts:login' %}">Se connecter</a>
+          <a class="button" href="{% url 'accounts:signup' %}">Créer mon compte <span aria-hidden="true">→</span></a>
+        {% endif %}
+        <button class="menu" type="button" aria-label="Ouvrir le menu" aria-expanded="false">☰</button>
+      </div>
+    </div>
+    <div class="mobile-nav" aria-label="Navigation mobile">
+      {% if not user.is_authenticated or request.path == "/" %}
+        <a href="{% url 'home' %}#services">Nos services</a>
+        <a href="{% url 'home' %}#fonctionnement">Comment ça marche ?</a>
+        <a href="{% url 'home' %}#engagements">Nos engagements</a>
+      {% endif %}
+      {% if user.is_authenticated %}
+        <a href="{% url 'accounts:profile' %}">{{ user.get_username }}</a>
+      {% else %}
+        <a href="{% url 'accounts:login' %}">Se connecter</a>
+      {% endif %}
+    </div>
+  </header>
+  {% endblock %}
+
+  {% if messages %}
+    {% for message in messages %}
+      {% if "profile-success" in message.tags %}
+        <div class="toast toast-success" role="status" aria-live="polite" data-toast>
+          <span class="toast-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+          </span>
+          <span class="toast-content">{{ message }}</span>
+          <button class="toast-close" type="button" aria-label="Fermer la notification" data-toast-close>×</button>
+        </div>
+      {% endif %}
+    {% endfor %}
+    {% for message in messages %}
+      {% if "profile-success" not in message.tags %}
+        <div class="shell">
+          <p class="notice">{{ message }}</p>
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% block content %}{% endblock %}
+
+  {% if request.path == "/" %}
+  {% block site_footer %}
+  <footer>
+    <div class="shell foot-grid">
+      <div>
+        <a href="{% url 'home' %}" class="logo"><i>à</i><span>Smart City</span></a>
+        <p>Des services utiles.<br>Une ville plus proche.</p>
+      </div>
+      <div>
+        <b>Découvrir</b>
+        <a href="{% url 'home' %}#services">Nos services</a>
+        <a href="{% url 'home' %}#fonctionnement">Comment ça marche ?</a>
+      </div>
+      <div>
+        <b>Services</b>
+        <a href="{% url 'mobilite:list' %}">Mobilité</a>
+        <a href="{% url 'evenements:list' %}">Événements</a>
+        <a href="{% url 'marketplace:list' %}">Marché local</a>
+      </div>
+      <div>
+        <b>Une question ?</b>
+        <a href="{% url 'home' %}#engagements">Nos engagements</a>
+        <a href="mailto:bonjour@smartcity.local">Nous contacter</a>
+      </div>
+    </div>
+    <div class="shell copyright">© 2026 Smart City · Valmont</div>
+  </footer>
+  {% endblock %}
+  {% endif %}
+  <script src="{% static 'js/main.js' %}?v=3" defer></script>
+</body>
+</html>

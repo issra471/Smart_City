@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Mes réservations · Smart City{% endblock %}
+{% block content %}
+<div class="portal">
+  {% include "includes/citizen_sidebar.html" %}
+  <div class="portal-main">
+<main class="content">
+  <div class="page-title">
+    <div>
+      <p class="eyebrow">Mobilité</p>
+      <h1>Mes réservations</h1>
+      <p class="muted">Vos départs à venir et passés.</p>
+    </div>
+    <a href="{% url 'mobilite:list' %}" class="button">Trouver une station <span aria-hidden="true">→</span></a>
+  </div>
+
+  <div class="mission-list">
+    {% for r in reservations %}
+      <article>
+        <span class="tag">{{ r.get_statut_display|upper }}</span>
+        <h3>{{ r.station.nom }}</h3>
+        <p>{{ r.station.get_type_display }} · {{ r.nombre }} unité(s)<br>{{ r.date_depart|date:"d/m/Y H:i" }}</p>
+        {% if r.statut == "confirmee" %}
+          <form method="post" action="{% url 'mobilite:annuler' r.pk %}">{% csrf_token %}
+            <button class="button secondary" type="submit">Annuler</button>
+          </form>
+        {% endif %}
+      </article>
+    {% empty %}
+      <article class="panel empty"><i>○</i><h2>Aucune réservation</h2><p class="muted">Trouvez une station pour planifier votre prochain trajet.</p></article>
+    {% endfor %}
+  </div>
+</main>
+</div>
+</div>
+{% endblock %}

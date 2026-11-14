@@ -1,0 +1,19 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ account.username }} · Administration{% endblock %}
+{% block admin_content %}
+<main class="content">
+  <div class="page-title">
+    <div><p class="eyebrow">Utilisateur</p><h1>{{ account.get_full_name|default:account.username }}</h1><p class="muted">@{{ account.username }}</p></div>
+    <a class="button" href="{% url 'accounts:admin_user_edit' account.pk %}">Modifier <span aria-hidden="true">→</span></a>
+  </div>
+  <section class="panel detail">
+    <dl>
+      <dt>E-mail</dt><dd>{{ account.email|default:"Non renseigné" }}</dd>
+      <dt>Statut</dt><dd>{% if account.is_active %}Actif{% else %}Désactivé{% endif %}</dd>
+      <dt>Rôle</dt><dd>{% if account.is_staff %}Administrateur{% else %}Citoyen{% endif %}</dd>
+      <dt>Inscription</dt><dd>{{ account.date_joined|date:"d/m/Y H:i" }}</dd>
+      <dt>Dernière connexion</dt><dd>{{ account.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</dd>
+    </dl>
+  </section>
+</main>
+{% endblock %}
