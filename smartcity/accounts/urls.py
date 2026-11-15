@@ -8,8 +8,9 @@ from .admin_views import (
     AdminModuleOverviewView,
     AdminReportListView,
     AdminUserDetailView,
+    AdminUserActionView,
+    AdminUserExportPDFView,
     AdminUserListView,
-    AdminUserUpdateView,
 )
 
 app_name = "accounts"
@@ -18,12 +19,14 @@ urlpatterns = [
     path("deconnexion/", auth_views.LogoutView.as_view(), name="logout"),
     path("inscription/", views.SignUpView.as_view(), name="signup"),
     path("profil/", views.ProfileUpdateView.as_view(), name="profile"),
+    path("profil/supprimer/", views.DeleteAccountView.as_view(), name="delete_account"),
     path("parametres/", views.ProfileUpdateView.as_view(), name="settings"),
     path("mot-de-passe/modifier/", views.PasswordChangeView.as_view(), name="password_change"),
     path("administration/", AdminDashboardView.as_view(), name="admin_dashboard"),
     path("administration/utilisateurs/", AdminUserListView.as_view(), name="admin_users"),
+    path("administration/utilisateurs/export-pdf/", AdminUserExportPDFView.as_view(), name="admin_users_export"),
     path("administration/utilisateurs/<int:pk>/", AdminUserDetailView.as_view(), name="admin_user_detail"),
-    path("administration/utilisateurs/<int:pk>/modifier/", AdminUserUpdateView.as_view(), name="admin_user_edit"),
+    path("administration/utilisateurs/<int:pk>/actions/", AdminUserActionView.as_view(), name="admin_user_action"),
     path("administration/modules/", AdminModuleOverviewView.as_view(), name="admin_modules"),
     path("administration/signalements/", AdminReportListView.as_view(), name="admin_reports"),
     path("administration/evenements/", AdminEventListView.as_view(), name="admin_events"),

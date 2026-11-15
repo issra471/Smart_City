@@ -4,7 +4,6 @@
 <main class="content">
   <div class="page-title">
     <div><p class="eyebrow">Utilisateur</p><h1>{{ account.get_full_name|default:account.username }}</h1><p class="muted">@{{ account.username }}</p></div>
-    <a class="button" href="{% url 'accounts:admin_user_edit' account.pk %}">Modifier <span aria-hidden="true">→</span></a>
   </div>
   <section class="panel detail">
     <dl>

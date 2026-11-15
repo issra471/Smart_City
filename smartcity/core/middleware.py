@@ -5,6 +5,7 @@ Inertia est rendue, donc les pages Django classiques ne sont pas affectées
 (les messages flash, par exemple, ne sont pas consommés par erreur).
 """
 from django.contrib.messages import get_messages
+from django.contrib.auth import logout
 from django.middleware.csrf import get_token
 from django.urls import reverse
 from inertia import share
@@ -37,6 +38,7 @@ _ROUTES = {
     "profile": "accounts:profile",
     "password_change": "accounts:password_change",
     "password_reset": "accounts:password_reset",
+    "delete_account": "accounts:delete_account",
     "mobilite": "mobilite:list",
     "mobilite_create": "mobilite:create",
     "reservations": "mobilite:reservations",
@@ -50,6 +52,7 @@ _ROUTES = {
     "marketplace_create": "marketplace:create",
     "admin_dashboard": "accounts:admin_dashboard",
     "admin_users": "accounts:admin_users",
+    "admin_users_export": "accounts:admin_users_export",
     "admin_modules": "accounts:admin_modules",
     "admin_reports": "accounts:admin_reports",
     "admin_events": "accounts:admin_events",
@@ -100,6 +103,10 @@ def vite_manifest_reload(get_response):
 
 def inertia_shared_props(get_response):
     def middleware(request):
+        if request.user.is_authenticated:
+            profile = getattr(request.user, "profile", None)
+            if profile and profile.sync_ban_state():
+                logout(request)
         share(
             request,
             auth=lambda: _auth(request),

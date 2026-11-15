@@ -5,7 +5,7 @@
     <a href="{% url 'accounts:admin_dashboard' %}" class="logo"><i>à</i><span>Smart City</span></a>
     <nav>
       <a class="{% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}" href="{% url 'accounts:admin_dashboard' %}">Tableau de bord <span>›</span></a>
-      <a class="{% if request.resolver_match.url_name == 'admin_users' or request.resolver_match.url_name == 'admin_user_detail' or request.resolver_match.url_name == 'admin_user_edit' %}active{% endif %}" href="{% url 'accounts:admin_users' %}">Utilisateurs <span>›</span></a>
+      <a class="{% if request.resolver_match.url_name == 'admin_users' or request.resolver_match.url_name == 'admin_user_detail' %}active{% endif %}" href="{% url 'accounts:admin_users' %}">Utilisateurs <span>›</span></a>
       <a class="{% if request.resolver_match.url_name == 'admin_modules' %}active{% endif %}" href="{% url 'accounts:admin_modules' %}">Modules <span>›</span></a>
       <a class="{% if request.resolver_match.url_name == 'admin_reports' %}active{% endif %}" href="{% url 'accounts:admin_reports' %}">Signalements <span>›</span></a>
       <a class="{% if request.resolver_match.url_name == 'admin_events' %}active{% endif %}" href="{% url 'accounts:admin_events' %}">Événements <span>›</span></a>
