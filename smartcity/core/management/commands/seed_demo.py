@@ -1,4 +1,4 @@
-"""Données de démonstration pour Valmont.
+"""Données de démonstration pour My City.
 
     python manage.py seed_demo          # ajoute les données (sans doublons)
     python manage.py seed_demo --clear  # retire uniquement ces données de démonstration
@@ -13,15 +13,16 @@ from animaux.models import Observation
 from evenements.models import Evenement
 from infrastructures.models import Signalement
 from marketplace.models import Produit
-from mobilite.models import Reservation, Station
+from mobilite.models import Reservation, Station, Transport
 
+# (nom, adresse, latitude, longitude, {type: unités approuvées})
 STATIONS = [
-    ("Station Gare centrale", "velo", "Place de la Gare", 12),
-    ("Station Parc des Tilleuls", "velo", "Entrée nord du parc", 2),
-    ("Trottinettes Mairie", "trottinette", "12 avenue de la République", 8),
-    ("Navette électrique Centre", "bus", "Arrêt Hôtel de Ville", 24),
-    ("Covoiturage Marché", "covoiturage", "Parking du marché couvert", 5),
-    ("Station Théâtre", "velo", "Rue des Arts", 0),
+    ("La Marsa", "Marsa Plage, près de la gare TGM", 36.8782, 10.3247, {"velo": 8, "trottinette": 4}),
+    ("Gammarth", "Avenue Taïeb Mhiri", 36.9106, 10.2870, {"velo": 5, "bus": 20}),
+    ("La Goulette", "Près de la gare TGM", 36.8183, 10.3050, {"velo": 6}),
+    ("Carthage", "Station Carthage Hannibal", 36.8528, 10.3233, {"trottinette": 6, "bus": 24}),
+    ("Le Lac", "Les Berges du Lac 1", 36.8325, 10.2330, {"velo": 10, "trottinette": 8}),
+    ("Tunis Centre", "Avenue Habib Bourguiba", 36.8002, 10.1858, {"velo": 12, "bus": 30}),
 ]
 SIGNALEMENTS = [
     ("Lampadaire en panne", "eclairage", "Le lampadaire devant l'école ne s'allume plus depuis trois jours.", "Rue des Écoles", "ouvert"),
@@ -31,7 +32,7 @@ SIGNALEMENTS = [
     ("Poubelle débordante", "autre", "La corbeille n'a pas été vidée depuis le week-end.", "Rue des Arts", "en_cours"),
 ]
 EVENEMENTS = [  # (titre, description, lieu, décalage en jours, heure)
-    ("Concert au théâtre", "Une soirée jazz avec des musiciens de la région. Entrée libre.", "Théâtre de Valmont", 3, 20),
+    ("Concert au théâtre", "Une soirée jazz avec des musiciens de la région. Entrée libre.", "Théâtre de My City", 3, 20),
     ("Marché des producteurs", "Fruits, légumes, miel et pain : les producteurs locaux vous attendent.", "Place du marché", 6, 9),
     ("Balade nature guidée", "Deux heures de marche pour découvrir les oiseaux du parc.", "Parc des Tilleuls", 10, 10),
     ("Atelier réparation de vélos", "Apportez votre vélo, repartez avec un vélo qui roule.", "Station Gare centrale", 15, 14),
@@ -70,8 +71,14 @@ class Command(BaseCommand):
         admin = User.objects.filter(username="admin").first() or citizen
         now = timezone.now()
 
-        for nom, type_, adresse, n in STATIONS:
-            Station.objects.get_or_create(nom=nom, defaults={"type": type_, "adresse": adresse, "unites_disponibles": n})
+        for nom, adresse, lat, lng, transports in STATIONS:
+            station, created = Station.objects.get_or_create(nom=nom, defaults={"adresse": adresse, "latitude": lat, "longitude": lng})
+            if created:
+                for type_, n in transports.items():
+                    Transport.objects.create(station=station, type=type_, unites_disponibles=n, statut="approuve", propose_par=admin)
+        marsa = Station.objects.get(nom="La Marsa")
+        # Une proposition de citoyen en attente, pour montrer l'approbation par l'administrateur.
+        Transport.objects.get_or_create(station=marsa, type="bus", propose_par=citizen, defaults={"unites_disponibles": 12})
         for i, (titre, cat, desc, adresse, statut) in enumerate(SIGNALEMENTS):
             Signalement.objects.get_or_create(titre=titre, defaults={"user": citizen if i % 2 == 0 else admin, "categorie": cat, "description": desc, "adresse": adresse, "statut": statut})
         for titre, desc, lieu, days, hour in EVENEMENTS:
@@ -83,17 +90,18 @@ class Command(BaseCommand):
             Produit.objects.get_or_create(titre=titre, defaults={"vendeur": admin if i % 2 == 0 else citizen, "description": desc, "prix": prix})
 
         if not Reservation.objects.filter(user=citizen).exists():
-            gare = Station.objects.get(nom="Station Gare centrale")
-            navette = Station.objects.get(nom="Navette électrique Centre")
-            Reservation.objects.create(user=citizen, station=gare, nombre=1, date_depart=(now + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0))
-            Reservation.objects.create(user=citizen, station=navette, nombre=2, statut="annulee", date_depart=(now - timedelta(days=4)).replace(hour=17, minute=30, second=0, microsecond=0))
+            gammarth = Station.objects.get(nom="Gammarth")
+            centre = Station.objects.get(nom="Tunis Centre")
+            velo = Transport.objects.get(station=marsa, type="velo", statut="approuve")
+            bus = Transport.objects.get(station=centre, type="bus", statut="approuve")
+            Reservation.objects.create(user=citizen, depart=marsa, arrivee=gammarth, transport=velo, nombre=1, date_depart=(now + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0))
+            Reservation.objects.create(user=citizen, depart=centre, arrivee=marsa, transport=bus, nombre=2, statut="annulee", date_depart=(now - timedelta(days=4)).replace(hour=17, minute=30, second=0, microsecond=0))
 
         self.stdout.write(self.style.SUCCESS("Données de démonstration ajoutées."))
 
     def clear(self):
         stations = Station.objects.filter(nom__in=[s[0] for s in STATIONS])
-        n = Reservation.objects.filter(station__in=stations).delete()[0]
-        n += stations.delete()[0]
+        n = stations.delete()[0]  # retire aussi leurs transports et leurs réservations
         n += Signalement.objects.filter(titre__in=[s[0] for s in SIGNALEMENTS]).delete()[0]
         n += Evenement.objects.filter(titre__in=[e[0] for e in EVENEMENTS]).delete()[0]
         n += Observation.objects.filter(espece__in=[o[0] for o in OBSERVATIONS]).delete()[0]

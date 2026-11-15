@@ -38,6 +38,7 @@ function useNav(admin) {
           { label: "Modules", href: urls.admin_modules, icon: LayoutGrid },
           { label: "Signalements", href: urls.admin_reports, icon: TriangleAlert },
           { label: "Événements", href: urls.admin_events, icon: CalendarHeart },
+          { label: "Transports", href: urls.admin_transports, icon: Bike },
         ],
       },
       {
@@ -89,7 +90,7 @@ function NavContent({ admin, onNavigate }) {
         <LogoMark tone="lime" className="size-10" />
         <span>
           <b className="block leading-tight font-semibold tracking-tight">Smart City</b>
-          <span className="text-xs text-paper/50">{admin ? "Administration" : "Valmont"}</span>
+          <span className="text-xs text-paper/50">{admin ? "Administration" : "My City"}</span>
         </span>
       </Link>
 

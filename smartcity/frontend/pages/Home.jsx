@@ -192,7 +192,7 @@ function Hero({ stats }) {
       <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1.1fr_.9fr]">
         <div>
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <Eyebrow>Valmont · services en ligne</Eyebrow>
+            <Eyebrow>My City · services en ligne</Eyebrow>
           </motion.div>
 
           <h1 className="font-serif text-5xl leading-[0.98] font-medium tracking-tight sm:text-7xl lg:text-[5.4rem]">
@@ -273,7 +273,7 @@ function Hero({ stats }) {
               </span>
               <div>
                 <p className="font-serif text-2xl leading-none font-semibold">{stats.evenements || "Sortir"}</p>
-                <p className="text-xs text-paper/60">{stats.evenements ? "événements à Valmont" : "culture, nature, rencontres"}</p>
+                <p className="text-xs text-paper/60">{stats.evenements ? "événements à My City" : "culture, nature, rencontres"}</p>
               </div>
             </div>
           </div>
@@ -310,7 +310,7 @@ function Services({ modules }) {
             Une ville entière, <em className="text-green">à portée de main.</em>
           </h2>
         </div>
-        <p className="max-w-xs text-muted">Six services pensés pour le quotidien des habitants de Valmont.</p>
+        <p className="max-w-xs text-muted">Six services pensés pour le quotidien des habitants de My City.</p>
       </Reveal>
 
       <div className="grid auto-rows-[minmax(15rem,auto)] gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -366,7 +366,7 @@ function Pulse({ stats }) {
         <Reveal>
           <Eyebrow light>En direct</Eyebrow>
           <h2 className="max-w-2xl font-serif text-4xl leading-tight font-medium sm:text-6xl">
-            Le pouls de <em className="text-lime">Valmont.</em>
+            Le pouls de <em className="text-lime">My City.</em>
           </h2>
         </Reveal>
         <div className="mt-14 grid gap-px overflow-hidden rounded-[2rem] border border-paper/10 bg-paper/10 sm:grid-cols-2 lg:grid-cols-5">
@@ -390,7 +390,7 @@ function CityMap() {
   const pins = [
     { x: 22, y: 30, label: "Mobilité", icon: Bike },
     { x: 68, y: 22, label: "Événement", icon: CalendarHeart },
-    { x: 48, y: 58, label: "Valmont", icon: MapPin, main: true },
+    { x: 48, y: 58, label: "My City", icon: MapPin, main: true },
     { x: 78, y: 70, label: "Marché", icon: ShoppingBasket },
     { x: 18, y: 76, label: "Parc", icon: PawPrint },
   ];
@@ -401,14 +401,14 @@ function CityMap() {
         <h2 className="font-serif text-4xl leading-tight font-medium sm:text-6xl">
           Le bon service, <em className="text-green">au bon endroit.</em>
         </h2>
-        <p className="mt-6 max-w-md text-lg text-muted">Explorez les services et les initiatives qui font vivre Valmont au quotidien.</p>
+        <p className="mt-6 max-w-md text-lg text-muted">Explorez les services et les initiatives qui font vivre My City au quotidien.</p>
         <div className="mt-8">
           <MagneticButton href={urls.dashboard}>Voir mon espace</MagneticButton>
         </div>
       </Reveal>
 
       <Reveal delay={0.15}>
-        <div className="relative aspect-square overflow-hidden rounded-[2.5rem] border border-line bg-pale" aria-label="Carte illustrée de Valmont">
+        <div className="relative aspect-square overflow-hidden rounded-[2.5rem] border border-line bg-pale" aria-label="Carte illustrée de My City">
           <svg viewBox="0 0 100 100" className="absolute inset-0 size-full" aria-hidden="true">
             <defs>
               <pattern id="grid" width="6" height="6" patternUnits="userSpaceOnUse">
@@ -543,7 +543,7 @@ function Editorial() {
 function Commitments() {
   const items = [
     ["Des informations claires", "Des services simples à comprendre, sans détour."],
-    ["Une présence locale", "Des initiatives ancrées dans les quartiers de Valmont."],
+    ["Une présence locale", "Des initiatives ancrées dans les quartiers de My City."],
     ["Une ville participative", "Vos signalements et vos idées contribuent à l'améliorer."],
   ];
   return (
@@ -569,7 +569,7 @@ function Commitments() {
         </div>
         <Reveal className="relative mt-14 flex flex-wrap items-center justify-between gap-6 border-t border-paper/15 pt-10">
           <p className="flex items-center gap-3 font-serif text-2xl italic sm:text-3xl">
-            <HeartHandshake className="size-8 text-lime" /> Prêt à vivre Valmont autrement ?
+            <HeartHandshake className="size-8 text-lime" /> Prêt à vivre My City autrement ?
           </p>
           <CtaButton />
         </Reveal>

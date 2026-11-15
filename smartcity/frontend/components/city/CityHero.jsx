@@ -218,7 +218,7 @@ export default function CityHero({ modules, stats, fallback, onNightChange }) {
               <span className={`absolute inline-flex size-full animate-ping-slow rounded-full ${dark ? "bg-lime" : "bg-green"}`} />
               <span className={`relative inline-flex size-1.5 rounded-full ${dark ? "bg-lime" : "bg-green"}`} />
             </span>
-            Valmont · ville interactive
+            My City · ville interactive
           </p>
           <h1 className="font-serif text-[2.6rem] leading-[0.98] font-medium tracking-tight sm:text-6xl lg:text-[4.1rem]">
             Explorez la ville. <em className={dark ? "text-lime" : "text-green"}>Entrez où vous voulez.</em>

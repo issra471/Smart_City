@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Head, router, usePage } from "@inertiajs/react";
-import { Bike, CalendarCheck, Loader2, MapPin } from "lucide-react";
+import { ArrowRight, Bike, CalendarCheck, Loader2 } from "lucide-react";
 import { appLayout } from "../../layouts/AppShell";
 import { Badge, Btn, EmptyState, PageHeader, STATION_ICONS, STATUS_TONE, cn, fmtDay, fmtMonth, fmtRelative, fmtTime, fmtWeekday } from "../../lib/ui";
 
@@ -21,17 +21,14 @@ function Row({ r }) {
           <Badge tone={STATUS_TONE[r.status]} dot>{r.status_label}</Badge>
           {r.upcoming && <span className="text-xs font-medium text-green">{fmtRelative(r.date)}</span>}
         </div>
-        <h3 className="font-serif text-2xl leading-tight font-medium">{r.station}</h3>
+        <h3 className="flex flex-wrap items-center gap-x-2.5 font-serif text-2xl leading-tight font-medium">
+          {r.from} <ArrowRight className="size-5 text-green" /> {r.to}
+        </h3>
         <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
           <span className="capitalize">{fmtWeekday(r.date)} · {fmtTime(r.date)}</span>
           <span className="flex items-center gap-1.5">
             <Icon className="size-3.5" /> {r.type_label} · {r.units} unité{r.units > 1 ? "s" : ""}
           </span>
-          {r.address && (
-            <span className="flex items-center gap-1.5">
-              <MapPin className="size-3.5" /> {r.address}
-            </span>
-          )}
         </p>
       </div>
       {r.status === "confirmee" &&

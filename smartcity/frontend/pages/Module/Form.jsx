@@ -10,7 +10,7 @@ const TIPS = {
   evenements: ["Un titre qui donne envie", "Le lieu exact et l'heure de début", "Une belle image d'illustration"],
   animaux: ["L'espèce, même approximative", "Le lieu précis de l'observation", "« Besoin de soin » si l'animal est blessé"],
   marketplace: ["Un nom clair pour le produit", "Un prix juste, en dinars", "Une photo bien éclairée"],
-  mobilite: ["Le nom de la station", "Le type de transport", "Le nombre d'unités disponibles"],
+  mobilite: ["La station où se trouvent les transports", "Le type : vélo, trottinette ou scooter électrique", "Un administrateur valide avant publication"],
 };
 const PLACEHOLDERS = {
   titre: "En quelques mots…",
@@ -39,7 +39,7 @@ export default function ModuleForm({ form, title, intro, ns, list_url }) {
           <p className="mb-1.5 text-xs font-semibold tracking-[0.14em] text-green uppercase">Services citoyens</p>
           <h1 className="font-serif text-4xl leading-[1.05] font-medium tracking-tight sm:text-5xl">{title}</h1>
           {intro && <p className="mt-3 mb-8 max-w-lg text-muted">{intro}</p>}
-          <DjangoForm form={form} cancelHref={list_url} submitLabel="Enregistrer" columns={2} wide={["titre", "nom", "description", "categorie", "type"]} placeholders={PLACEHOLDERS} />
+          <DjangoForm form={form} cancelHref={list_url} submitLabel="Enregistrer" columns={2} wide={["titre", "nom", "description", "categorie", "type", "station"]} placeholders={PLACEHOLDERS} />
         </Card>
 
         <aside className="grain relative overflow-hidden rounded-[1.75rem] bg-deep p-7 text-paper lg:sticky lg:top-8">
