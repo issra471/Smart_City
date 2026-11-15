@@ -39,7 +39,11 @@ _ROUTES = {
     "password_reset": "accounts:password_reset",
     "mobilite": "mobilite:list",
     "mobilite_create": "mobilite:create",
+    "mobilite_transport_create": "mobilite:transport_create",
     "reservations": "mobilite:reservations",
+    "admin_transports": "mobilite:admin_transports",
+    "admin_mobilite": "mobilite:admin",
+    "admin_bookings": "mobilite:admin_reservations",
     "infrastructures": "infrastructures:list",
     "infrastructures_create": "infrastructures:create",
     "evenements": "evenements:list",
@@ -51,7 +55,8 @@ _ROUTES = {
     "admin_dashboard": "accounts:admin_dashboard",
     "admin_users": "accounts:admin_users",
     "admin_modules": "accounts:admin_modules",
-    "admin_reports": "accounts:admin_reports",
+    "admin_reports": "infrastructures:admin",
+    "admin_teams": "infrastructures:equipes",
     "admin_events": "accounts:admin_events",
     "django_admin": "admin:index",
 }
@@ -87,12 +92,17 @@ def vite_manifest_reload(get_response):
     # (La relever à la première visite ne suffisait pas : une compilation faite entre
     # le démarrage et cette première visite passait inaperçue.)
     last = {"mtime": stamp()}
+    # Version Inertia = date de la compilation : un onglet ouvert avec l'ancienne version
+    # reçoit une réponse 409 et se recharge tout seul (sinon ses pages introuvables
+    # bloquaient la navigation, par exemple après une réservation).
+    settings.INERTIA_VERSION = str(last["mtime"])
 
     def middleware(request):
         mtime = stamp()
         if mtime != last["mtime"]:
             DjangoViteAssetLoader._instance = None
             last["mtime"] = mtime
+            settings.INERTIA_VERSION = str(mtime)
         return get_response(request)
 
     return middleware

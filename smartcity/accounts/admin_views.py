@@ -135,9 +135,9 @@ class AdminModuleOverviewView(StaffRequiredMixin, InertiaMixin, TemplateView):
 
     def get_props(self, context):
         rows = [
-            ("Signalements", "infrastructures", Signalement.objects.count(), reverse("accounts:admin_reports"), False),
+            ("Signalements", "infrastructures", Signalement.objects.count(), reverse("infrastructures:admin"), False),
             ("Événements", "evenements", Evenement.objects.count(), reverse("accounts:admin_events"), False),
-            ("Mobilité", "mobilite", Station.objects.count(), reverse("admin:mobilite_station_changelist"), True),
+            ("Mobilité", "mobilite", Station.objects.count(), reverse("mobilite:admin"), False),
             ("Observations animales", "animaux", Observation.objects.count(), reverse("admin:animaux_observation_changelist"), True),
             ("Marché local", "marketplace", Produit.objects.count(), reverse("admin:marketplace_produit_changelist"), True),
         ]
@@ -159,24 +159,6 @@ class AdminSectionList(StaffRequiredMixin, InertiaMixin, ListView):
             "description": self.section_description,
             "admin_url": reverse(self.admin_model_url),
             "rows": [self.row(o) for o in context["object_list"]],
-        }
-
-
-class AdminReportListView(AdminSectionList):
-    queryset = Signalement.objects.select_related("user")
-    section_title = "Signalements"
-    section_description = "Suivez les problèmes signalés dans l'espace public."
-    admin_model_url = "admin:infrastructures_signalement_changelist"
-
-    def row(self, o):
-        return {
-            "id": o.pk,
-            "title": o.titre,
-            "detail": o.get_categorie_display(),
-            "status": {"key": o.statut, "label": o.get_statut_display()},
-            "author": display_name(o.user),
-            "date": iso(o.created_at),
-            "manage_url": reverse("admin:infrastructures_signalement_change", args=[o.pk]),
         }
 
 

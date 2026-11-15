@@ -1,6 +1,6 @@
 // Composants et outils partagés par toutes les pages de l'application.
 import { Link } from "@inertiajs/react";
-import { ArrowRight, Bike, Bus, CalendarHeart, Car, PawPrint, ShoppingBasket, TriangleAlert, Zap } from "lucide-react";
+import { Armchair, ArrowRight, Bike, Bus, CalendarHeart, CircleHelp, Construction, Droplets, Lightbulb, Moped, PawPrint, Scooter, ShoppingBasket, Trash2, TriangleAlert } from "lucide-react";
 
 export const cn = (...parts) => parts.filter(Boolean).join(" ");
 export const ease = [0.22, 1, 0.36, 1];
@@ -15,7 +15,11 @@ export const MODULES = {
   marketplace: { icon: ShoppingBasket, short: "Marché local" },
 };
 
-export const STATION_ICONS = { velo: Bike, trottinette: Zap, bus: Bus, covoiturage: Car };
+export const STATION_ICONS = { velo: Bike, trottinette: Scooter, scooter: Moped, bus: Bus };
+
+/** Catégories de signalement : icône. Couleurs des statuts sur la carte. */
+export const REPORT_ICONS = { voirie: Construction, eclairage: Lightbulb, mobilier: Armchair, eau: Droplets, dechets: Trash2, autre: CircleHelp };
+export const REPORT_COLORS = { ouvert: "#e0603a", en_cours: "#d99a16", resolu: "#087a5b" };
 
 /* ------------------------------ Dates ------------------------------ */
 
@@ -95,7 +99,7 @@ const TONES = {
   muted: "bg-ink/5 text-muted",
   paper: "bg-paper/90 text-ink backdrop-blur",
 };
-export const STATUS_TONE = { ouvert: "coral", en_cours: "amber", resolu: "green", confirmee: "green", annulee: "muted" };
+export const STATUS_TONE = { ouvert: "coral", en_cours: "amber", resolu: "green", confirmee: "green", annulee: "muted", en_attente: "amber", approuve: "green", refuse: "coral" };
 
 export function Badge({ tone = "green", dot, className, children }) {
   return (

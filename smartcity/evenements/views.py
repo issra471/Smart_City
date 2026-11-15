@@ -7,7 +7,7 @@ from .models import Evenement
 
 class ItemList(ModuleListView):
     queryset = Evenement.objects.select_related("organisateur")
-    title = "Sortir à Valmont"
+    title = "Sortir à My City"
     subtitle = "Culture, nature, rencontres."
     app_ns = "evenements"
     add_label = "Créer un événement"
