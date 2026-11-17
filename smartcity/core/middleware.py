@@ -48,6 +48,8 @@ _ROUTES = {
     "animaux_create": "animaux:create",
     "marketplace": "marketplace:list",
     "marketplace_create": "marketplace:create",
+    "mes_produits": "marketplace:mes_produits",
+    "mon_panier": "marketplace:mon_panier",
     "admin_dashboard": "accounts:admin_dashboard",
     "admin_users": "accounts:admin_users",
     "admin_modules": "accounts:admin_modules",

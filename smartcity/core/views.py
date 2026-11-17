@@ -15,7 +15,7 @@ MODULES = [
     {"label": "Sortir à Valmont", "ns": "evenements", "desc": "Culture, nature, rencontres. Explorez les événements et retrouvez vos inscriptions."},
     {"label": "Observer un animal", "ns": "animaux", "desc": "Observations, soin. Signalez une présence et consultez les observations proches."},
     {"label": "Acheter local", "ns": "marketplace", "desc": "Produits, commandes. Découvrez les produits proposés par le marché local."},
-    {"label": "Mon espace vendeur", "ns": "marketplace", "url": "marketplace:create", "desc": "Mes produits. Gérez vos annonces. Accès préservé à titre de producteur."},
+    {"label": "Mon espace vendeur", "ns": "marketplace", "url": "marketplace:mes_produits", "desc": "Mes produits. Gérez vos annonces. Accès préservé à titre de producteur."},
 ]
 
 
