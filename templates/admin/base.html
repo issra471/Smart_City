@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="portal">
+  <aside class="sidebar">
+    <a href="{% url 'accounts:admin_dashboard' %}" class="logo"><i>à</i><span>Smart City</span></a>
+    <nav>
+      <a class="{% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}" href="{% url 'accounts:admin_dashboard' %}">Tableau de bord <span>›</span></a>
+      <a class="{% if request.resolver_match.url_name == 'admin_users' or request.resolver_match.url_name == 'admin_user_detail' or request.resolver_match.url_name == 'admin_user_edit' %}active{% endif %}" href="{% url 'accounts:admin_users' %}">Utilisateurs <span>›</span></a>
+      <a class="{% if request.resolver_match.url_name == 'admin_modules' %}active{% endif %}" href="{% url 'accounts:admin_modules' %}">Modules <span>›</span></a>
+      <a class="{% if request.resolver_match.url_name == 'admin_reports' %}active{% endif %}" href="{% url 'accounts:admin_reports' %}">Signalements <span>›</span></a>
+      <a class="{% if request.resolver_match.url_name == 'admin_events' %}active{% endif %}" href="{% url 'accounts:admin_events' %}">Événements <span>›</span></a>
+      <a href="{% url 'admin:index' %}">Django Admin <span>↗</span></a>
+    </nav>
+    <a class="logout" href="{% url 'dashboard' %}">← Espace citoyen</a>
+  </aside>
+  <div class="portal-main">
+    <header>
+      <span>Administration</span>
+      <a class="profile" href="{% url 'accounts:profile' %}"><i>{{ user.username|slice:":2"|upper }}</i>{{ user.get_username }}</a>
+    </header>
+    {% block admin_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+@import url("https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&display=swap");
+@import "tailwindcss";
+
+/* Palette Smart City (reprise de static/css/style.css) */
+@theme {
+  --color-ink: #173b33;
+  --color-green: #087a5b;
+  --color-dark: #075b47;
+  --color-deep: #0b2a23;
+  --color-mint: #e1eee7;
+  --color-pale: #eff5f0;
+  --color-cream: #f7f6ef;
+  --color-paper: #fffefa;
+  --color-line: #d8ded7;
+  --color-muted: #697772;
+  --color-lime: #c8f169;
+  --color-coral: #f0906a;
+
+  --font-serif: "Newsreader", Georgia, serif;
+  --font-sans: "Libre Franklin", Arial, sans-serif;
+
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-ping-slow: ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  --animate-blob: blob 18s ease-in-out infinite;
+
+  @keyframes marquee {
+    to { transform: translateX(-50%); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes blob {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(6%, -8%) scale(1.12); }
+    66% { transform: translate(-6%, 6%) scale(0.92); }
+  }
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body {
+    @apply overflow-x-clip bg-cream font-sans text-ink antialiased;
+  }
+  ::selection { @apply bg-lime text-deep; }
+}
+
+/* Texture « grain » légère par-dessus les fonds */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Curseur d'heure de la ville 3D : nuit -> aube -> jour -> crépuscule -> nuit */
+.time-range {
+  appearance: none;
+  height: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: linear-gradient(90deg, #0b2a23, #f0906a 27%, #c8f169 50%, #f0906a 77%, #0b2a23);
+}
+.time-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fffefa;
+  border: 3px solid #087a5b;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+.time-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fffefa;
+  border: 3px solid #087a5b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

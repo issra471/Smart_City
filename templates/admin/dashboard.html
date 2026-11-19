@@ -1,0 +1,33 @@
+{% extends "admin/base.html" %}
+{% block title %}Administration · Smart City{% endblock %}
+{% block admin_content %}
+<main class="content">
+  <div class="page-title">
+    <div><p class="eyebrow">Gestion</p><h1>Tableau de bord</h1></div>
+    <a class="button" href="{% url 'accounts:admin_modules' %}">Gérer les modules <span aria-hidden="true">→</span></a>
+  </div>
+  <div class="stats">
+    <div><b>{{ user_count }}</b><span>Utilisateurs</span></div>
+    <div><b>{{ active_user_count }}</b><span>Comptes actifs</span></div>
+    <div><b>{{ open_report_count }}</b><span>Signalements ouverts</span></div>
+    <div><b>{{ event_count }}</b><span>Événements</span></div>
+  </div>
+  <div class="dash-grid">
+    <section class="panel">
+      <h2>Activité des modules</h2>
+      <div class="summary">
+        <p><span>Stations de mobilité</span><b>{{ station_count }}</b></p>
+        <p><span>Réservations</span><b>{{ reservation_count }}</b></p>
+        <p><span>Observations animales</span><b>{{ observation_count }}</b></p>
+        <p><span>Produits locaux</span><b>{{ product_count }}</b></p>
+      </div>
+    </section>
+    <aside class="tip">
+      <h3>Actions rapides</h3>
+      <p>Consultez les comptes et les signalements nécessitant un suivi.</p>
+      <a href="{% url 'accounts:admin_users' %}">Voir les utilisateurs →</a><br>
+      <a href="{% url 'accounts:admin_reports' %}">Voir les signalements →</a>
+    </aside>
+  </div>
+</main>
+{% endblock %}

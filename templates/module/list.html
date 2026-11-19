@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · Smart City{% endblock %}
+{% block content %}
+<div class="portal">
+  {% include "includes/citizen_sidebar.html" %}
+  <div class="portal-main">
+<main class="content">
+  <div class="page-title">
+    <div>
+      <p class="eyebrow">Services citoyens</p>
+      <h1>{{ title }}</h1>
+      <p class="muted">{{ subtitle }}</p>
+    </div>
+    <a href="{% url create_url %}" class="button">Ajouter <span aria-hidden="true">→</span></a>
+  </div>
+
+  <div class="cards">
+    {% for o in objects %}
+      <article>
+        {% if o.card_image %}<img src="{{ o.card_image }}" alt="" class="card-img">{% endif %}
+        <span class="tag">{{ o.card_meta }}</span>
+        <h3>{{ o.card_title }}</h3>
+        <p>{{ o.card_text|truncatechars:140 }}</p>
+      </article>
+    {% empty %}
+      <article class="empty"><i>○</i><h2>Tout est calme ici.</h2><p class="muted">Rien à afficher pour le moment.</p></article>
+    {% endfor %}
+  </div>
+</main>
+</div>
+</div>
+{% endblock %}

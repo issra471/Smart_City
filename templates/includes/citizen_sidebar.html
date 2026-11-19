@@ -1,0 +1,19 @@
+<aside class="sidebar">
+  <a href="{% url 'dashboard' %}" class="logo"><i>à</i><span>Smart City</span></a>
+  <nav aria-label="Navigation citoyenne">
+    <a class="{% if request.path == '/mon-espace/' %}active{% endif %}" href="{% url 'dashboard' %}"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-3H4v3Zm10-12h6V4h-6v4Z"/></svg><span>Vue d'ensemble</span><b>›</b></a>
+    <a class="{% if request.path == '/mobilite/' %}active{% endif %}" href="{% url 'mobilite:list' %}"><svg viewBox="0 0 24 24"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M7 17 10 7h4l3 10M10 7 8 4h4"/></svg><span>Mobilité</span><b>›</b></a>
+    <a class="{% if request.path == '/infrastructures/' %}active{% endif %}" href="{% url 'infrastructures:list' %}"><svg viewBox="0 0 24 24"><path d="M12 20s7-3.8 7-10V5l-7-2-7 2v5c0 6.2 7 10 7 10Z"/><path d="M12 8v5M12 16h.01"/></svg><span>Signalements</span><b>›</b></a>
+    <a class="{% if request.path == '/evenements/' %}active{% endif %}" href="{% url 'evenements:list' %}"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg><span>Événements</span><b>›</b></a>
+    <a class="{% if request.path == '/animaux/' %}active{% endif %}" href="{% url 'animaux:list' %}"><svg viewBox="0 0 24 24"><path d="M5 8.5C3.9 6.7 5 5 6.5 5c1.2 0 2.2 1 2.5 2.2C9.8 6 11 5 12 5s2.2 1 3 2.2C15.3 6 16.3 5 17.5 5c1.5 0 2.6 1.7 1.5 3.5 1.2 1.4 1.6 3.6.4 5.3-1.6 2.4-5.8 2.4-7.4 0-1.6 2.4-5.8 2.4-7.4 0-1.2-1.7-.8-3.9.4-5.3Z"/></svg><span>Observations animales</span><b>›</b></a>
+    <a class="{% if request.path == '/marketplace/' %}active{% endif %}" href="{% url 'marketplace:list' %}"><svg viewBox="0 0 24 24"><path d="M4 10h16v10H4V10Zm2 0V7a6 6 0 0 1 12 0v3M8 14h.01M12 14h.01M16 14h.01"/></svg><span>Marché local</span><b>›</b></a>
+    <a class="{% if '/mes-reservations/' in request.path %}active{% endif %}" href="{% url 'mobilite:reservations' %}"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h5"/></svg><span>Mes réservations</span><b>›</b></a>
+    <a class="{% if '/marketplace/mes-produits/' in request.path %}active{% endif %}" href="{% url 'marketplace:mes_produits' %}"><svg viewBox="0 0 24 24"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12v0a2 2 0 0 1-2-2V7"/></svg><span>Mes produits</span><b>›</b></a>
+    <a class="{% if '/marketplace/panier/' in request.path %}active{% endif %}" href="{% url 'marketplace:panier' %}"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg><span>Mon panier</span><b>›</b></a>
+    <a class="{% if request.path == '/compte/profil/' %}active{% endif %}" href="{% url 'accounts:profile' %}"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 20a7 7 0 0 1 14 0"/></svg><span>Mon profil</span><b>›</b></a>
+  </nav>
+  <form method="post" action="{% url 'accounts:logout' %}" class="logout-form logout">
+    {% csrf_token %}
+    <button type="submit">← Déconnexion</button>
+  </form>
+</aside>

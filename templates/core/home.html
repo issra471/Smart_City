@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Smart City · Des services proches de chez vous{% endblock %}
+{% block content %}
+<main>
+  <section class="hero">
+    <div class="shell hero-grid">
+      <div>
+        <p class="eyebrow">Les services de proximité</p>
+        <h1>Plus proche de la ville. Plus simple à vivre.</h1>
+        <p class="lead">Se déplacer, signaler, participer, acheter local. Retrouvez les services de votre ville dans un même espace.</p>
+        <div class="actions">
+          <a class="button" href="#services">Découvrir les services <span aria-hidden="true">→</span></a>
+          {% if user.is_authenticated %}
+            <a class="link" href="{% url 'dashboard' %}">Mon espace <span aria-hidden="true">→</span></a>
+          {% else %}
+            <a class="link" href="{% url 'accounts:login' %}">Se connecter <span aria-hidden="true">→</span></a>
+          {% endif %}
+        </div>
+      </div>
+      <figure>
+        <img src="{% static 'images/hero-park.jpg' %}" alt="Promenade dans un parc arboré">
+        <figcaption>À quelques pas de chez vous</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section white" id="services">
+    <div class="shell">
+      <p class="eyebrow">Ce que nous proposons</p>
+      <h2>Une offre de services à portée de main.</h2>
+      <div class="cards">
+        {% for module in modules|slice:":3" %}
+          <article class="service-card service-card-{{ forloop.counter }}">
+            <div class="service-card-top">
+              <span class="service-icon" aria-hidden="true">
+                {% if module.ns == "mobilite" %}
+                  <svg viewBox="0 0 24 24"><path d="M5 17h14M7 17l1.5-6h7L18 17M9 11l1-3h4l1.5 3M5 17a2 2 0 1 0 4 0M15 17a2 2 0 1 0 4 0"/></svg>
+                {% elif module.ns == "infrastructures" %}
+                  <svg viewBox="0 0 24 24"><path d="M12 3 3.5 20h17L12 3Z"/><path d="M12 9v5M12 17v.5"/></svg>
+                {% else %}
+                  <svg viewBox="0 0 24 24"><path d="M4 19h16M6 17V9l6-4 6 4v8M9 17v-4h6v4M8 9h.01M12 8h.01M16 9h.01"/></svg>
+                {% endif %}
+              </span>
+            </div>
+            <h3>{{ module.label }}</h3>
+            <p>{{ module.desc }}</p>
+            <a href="{% url module.ns|add:':list' %}">En savoir plus <span aria-hidden="true">→</span></a>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="shell split">
+      <div>
+        <p class="eyebrow">Autour de vous</p>
+        <h2>Le bon service, au bon endroit.</h2>
+        <p class="muted">Explorez les services et les initiatives qui font vivre Valmont au quotidien.</p>
+        <a class="button" href="{% url 'dashboard' %}">Voir mon espace <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="map" aria-label="Carte illustrée de Valmont">
+        <i></i><i></i><i></i><i></i>
+        <span class="map-pin" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        </span>
+        <b class="map-label">Valmont</b>
+        <span class="map-status"><i></i> Services à proximité</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section mint" id="fonctionnement">
+    <div class="shell">
+      <p class="eyebrow">Comment ça marche ?</p>
+      <h2>Des repères clairs, tout simplement.</h2>
+      <div class="steps">
+        <article>
+          <span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg></span>
+          <h3>Choisissez un service</h3>
+          <p>Accédez rapidement à la mobilité, aux événements ou aux services de quartier.</p>
+        </article>
+        <article>
+          <span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+          <h3>Faites votre démarche</h3>
+          <p>Remplissez un formulaire simple avec vos informations et vos besoins.</p>
+        </article>
+        <article>
+          <span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2-5"/><path d="M5 5v4h4"/><path d="m12 8 3 4-3 3"/></svg></span>
+          <h3>Retrouvez tout dans votre espace</h3>
+          <p>Suivez vos réservations, signalements et contributions au même endroit.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section white">
+    <div class="shell editorial">
+      <img src="{% static 'images/walk.jpg' %}" alt="Promenade collective dans un parc">
+      <div>
+        <p class="eyebrow">L'humain avant tout</p>
+        <h2>Des services utiles et respectueux.</h2>
+        <p class="muted">Chaque service est pensé pour faciliter la vie locale, encourager la participation et rendre l'information plus accessible.</p>
+        <a class="link" href="#engagements">Lire nos engagements <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section dark" id="engagements">
+    <div class="shell">
+      <p class="eyebrow">Nos engagements</p>
+      <h2>À vos côtés, avec attention.</h2>
+      <div class="commitments">
+        <div><b>01</b><strong>Des informations claires</strong><span>Des services simples à comprendre, sans détour.</span></div>
+        <div><b>02</b><strong>Une présence locale</strong><span>Des initiatives ancrées dans les quartiers de Valmont.</span></div>
+        <div><b>03</b><strong>Une ville participative</strong><span>Vos signalements et vos idées contribuent à l'améliorer.</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}

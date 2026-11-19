@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Connexion · Smart City{% endblock %}
+{% block content %}
+<main class="auth">
+  <section>
+    <p class="eyebrow">Heureux de vous revoir</p>
+    <h1>Me connecter</h1>
+    <p class="muted">Retrouvez vos services, réservations et contributions.</p>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <label for="{{ form.username.id_for_label }}">Nom d'utilisateur
+        {{ form.username }}
+        {{ form.username.errors }}
+      </label>
+      <label for="{{ form.password.id_for_label }}">Mot de passe
+        {{ form.password }}
+        {{ form.password.errors }}
+      </label>
+      <a class="forgot" href="{% url 'accounts:password_reset' %}">Mot de passe oublié ?</a>
+      <button class="button" type="submit">Se connecter <span aria-hidden="true">→</span></button>
+    </form>
+    <p class="switch">Pas encore de compte ? <a href="{% url 'accounts:signup' %}">Créer mon compte</a></p>
+  </section>
+  <aside>
+    <h2>Calme, utile, tout près.</h2>
+    <p>Un espace unique pour organiser vos services de proximité.</p>
+    <img src="{% static 'images/bench.jpg' %}" alt="Un moment calme dans un parc">
+  </aside>
+</main>
+{% endblock %}

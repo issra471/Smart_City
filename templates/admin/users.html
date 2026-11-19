@@ -1,0 +1,31 @@
+{% extends "admin/base.html" %}
+{% block title %}Utilisateurs · Administration{% endblock %}
+{% block admin_content %}
+<main class="content">
+  <div class="page-title"><div><p class="eyebrow">Gestion</p><h1>Utilisateurs</h1></div></div>
+  <section class="panel">
+    <form class="tools" method="get">
+      <input name="q" value="{{ query }}" placeholder="Rechercher un utilisateur…" aria-label="Rechercher un utilisateur">
+      <button class="button" type="submit">Rechercher</button>
+    </form>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Utilisateur</th><th>E-mail</th><th>Statut</th><th>Rôle</th><th></th></tr></thead>
+        <tbody>
+          {% for account in users %}
+            <tr>
+              <td><b>{{ account.get_full_name|default:account.username }}</b><br><span class="muted">@{{ account.username }}</span></td>
+              <td>{{ account.email|default:"—" }}</td>
+              <td><span class="tag">{% if account.is_active %}Actif{% else %}Désactivé{% endif %}</span></td>
+              <td>{% if account.is_staff %}Staff{% else %}Citoyen{% endif %}</td>
+              <td><a href="{% url 'accounts:admin_user_detail' account.pk %}">Voir →</a></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">Aucun utilisateur trouvé.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+{% endblock %}

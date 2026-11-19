@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% block title %}Modifier un utilisateur · Administration{% endblock %}
+{% block admin_content %}
+<main class="content">
+  <div class="page-title"><div><p class="eyebrow">Gestion</p><h1>Modifier {{ object.username }}</h1></div></div>
+  <form method="post" class="panel profile-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }} {{ field }} {{ field.errors }}</label>
+    {% endfor %}
+    <div class="form-actions"><a class="button secondary" href="{% url 'accounts:admin_user_detail' object.pk %}">Annuler</a><button class="button" type="submit">Enregistrer <span aria-hidden="true">→</span></button></div>
+  </form>
+</main>
+{% endblock %}

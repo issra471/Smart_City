@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Mon espace · Smart City{% endblock %}
+{% block content %}
+<div class="portal">
+  {% include "includes/citizen_sidebar.html" %}
+
+  <div class="portal-main">
+    <header>
+      <span>Mon espace citoyen</span>
+      <a class="profile" href="{% url 'accounts:profile' %}"><i>{{ user.username|slice:":2"|upper }}</i>{{ user.get_username }}</a>
+    </header>
+    <main class="content">
+      <div class="page-title">
+        <div>
+          <p class="eyebrow">Smart City</p>
+          <h1>Bonjour {{ user.first_name|default:user.username }},</h1>
+        </div>
+        <a class="button" href="{% url 'infrastructures:create' %}">Nouveau signalement <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="notice">
+        <span aria-hidden="true">✓</span>
+        <span><strong>Votre espace est prêt.</strong><small>Accédez à vos services et démarches locales.</small></span>
+        <a href="#services">Voir les services</a>
+      </div>
+      <section id="services">
+        <h2>Vos services de proximité</h2>
+        <div class="mission-list">
+          {% for m in modules %}
+            <a href="{% if m.url %}{% url m.url %}{% else %}{% url m.ns|add:':list' %}{% endif %}">
+              <i>0{{ forloop.counter }}</i>
+              <span><strong>{{ m.label }}</strong><small>{{ m.desc }}</small></span>
+              <em>Disponible</em>
+              <b>›</b>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+{% endblock %}

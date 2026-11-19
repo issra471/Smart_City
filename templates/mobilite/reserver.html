@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Réserver · Smart City{% endblock %}
+{% block content %}
+<div class="portal">
+  {% include "includes/citizen_sidebar.html" %}
+  <div class="portal-main">
+<main class="content">
+  <div class="page-title">
+    <div>
+      <p class="eyebrow">Mobilité</p>
+      <h1>Réserver une station</h1>
+      <p class="muted">{{ station.nom }} · {{ station.get_type_display }} · {{ station.unites_disponibles }} disponible(s)</p>
+    </div>
+  </div>
+  <form method="post" class="panel profile-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }} {{ field }} {{ field.errors }}</label>
+    {% endfor %}
+    <div class="form-actions">
+      <a href="{% url 'mobilite:list' %}" class="button secondary">Annuler</a>
+      <button type="submit" class="button">Confirmer <span aria-hidden="true">→</span></button>
+    </div>
+  </form>
+</main>
+</div>
+</div>
+{% endblock %}

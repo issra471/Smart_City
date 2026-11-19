@@ -1,0 +1,79 @@
+/* Épingles de la carte des signalements (voir ReportMap.jsx). */
+.rp-map {
+  z-index: 0;
+  background: #e8efe9;
+  font-family: inherit;
+}
+.rp-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: -50% -121%; /* la pointe de la goutte tombe sur le point exact */
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50% 50% 50% 0;
+  rotate: -45deg;
+  transform-origin: center;
+  background: var(--c);
+  border: 3px solid #fffefa;
+  box-shadow: 0 6px 16px #0b2a2345;
+  color: #fffefa;
+  cursor: pointer;
+  transition: scale 0.2s, opacity 0.2s;
+}
+/* L'icône reste droite dans l'épingle tournée. */
+.rp-pin svg {
+  rotate: 45deg;
+}
+.rp-pin:hover {
+  scale: 1.12;
+}
+.rp-pin--on {
+  width: 46px;
+  height: 46px;
+  border-color: #0b2a23;
+  box-shadow: 0 0 0 5px #c8f16999, 0 8px 20px #0b2a2355;
+}
+.rp-pin--faded {
+  opacity: 0.55;
+}
+/* Nouveau signalement : point qui pulse, déplaçable. */
+.rp-new {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: -50% -50%;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #0b2a23;
+  border: 4px solid #c8f169;
+  box-shadow: 0 6px 18px #0b2a2366;
+  cursor: grab;
+}
+.rp-new span {
+  position: absolute;
+  inset: -12px;
+  border-radius: 999px;
+  border: 3px solid #c8f169;
+  animation: rp-pulse 1.6s ease-out infinite;
+}
+@keyframes rp-pulse {
+  from {
+    scale: 0.5;
+    opacity: 1;
+  }
+  to {
+    scale: 1.6;
+    opacity: 0;
+  }
+}
+.rp-map .leaflet-control-attribution {
+  font-size: 10px;
+  background: #fffefacc;
+}
+.rp-map .leaflet-bar a {
+  color: #0b2a23;
+}

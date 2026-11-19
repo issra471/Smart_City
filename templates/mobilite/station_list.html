@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Me déplacer · Smart City{% endblock %}
+{% block content %}
+<div class="portal">
+  {% include "includes/citizen_sidebar.html" %}
+  <div class="portal-main">
+<main class="content">
+  <div class="page-title">
+    <div>
+      <p class="eyebrow">Services citoyens</p>
+      <h1>Me déplacer</h1>
+      <p class="muted">Transports éco-friendly : vélos, trottinettes, bus électriques, covoiturage.</p>
+    </div>
+    <div class="form-actions">
+      <a href="{% url 'mobilite:reservations' %}" class="button secondary">Mes réservations</a>
+      <a href="{% url 'mobilite:create' %}" class="button">Ajouter une station</a>
+    </div>
+  </div>
+
+  <div class="chips">
+    <a href="{% url 'mobilite:list' %}" class="tag {% if not current_type %}on{% endif %}">Tous</a>
+    {% for value, label in types %}
+      <a href="?type={{ value }}" class="tag {% if current_type == value %}on{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="cards">
+    {% for s in stations %}
+      <article>
+        <span class="tag">{{ s.get_type_display|upper }}</span>
+        <h3>{{ s.nom }}</h3>
+        <p>{{ s.adresse|default:"Adresse non renseignée" }}</p>
+        <p><strong>{{ s.unites_disponibles }}</strong> unité(s) disponible(s)</p>
+        {% if s.unites_disponibles > 0 %}
+          <a href="{% url 'mobilite:reserver' s.pk %}" class="button">Réserver <span aria-hidden="true">→</span></a>
+        {% else %}
+          <span class="muted">Complet</span>
+        {% endif %}
+      </article>
+    {% empty %}
+      <article class="empty"><i>⌖</i><h2>Aucune station pour le moment.</h2><p class="muted">Ajoutez une station pour commencer.</p></article>
+    {% endfor %}
+  </div>
+</main>
+</div>
+</div>
+{% endblock %}
