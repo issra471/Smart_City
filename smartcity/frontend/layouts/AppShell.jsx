@@ -10,15 +10,16 @@ import {
   Building2,
   CalendarCheck,
   CalendarHeart,
+  HandHeart,
+  HardHat,
+  Inbox,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
   Menu,
-  Package,
   PawPrint,
   ShieldCheck,
   ShoppingBasket,
-  ShoppingCart,
   TriangleAlert,
   UserRound,
   Users,
@@ -38,8 +39,15 @@ function useNav(admin) {
           { label: "Tableau de bord", href: urls.admin_dashboard, icon: LayoutDashboard, exact: true },
           { label: "Utilisateurs", href: urls.admin_users, icon: Users },
           { label: "Modules", href: urls.admin_modules, icon: LayoutGrid },
-          { label: "Signalements", href: urls.admin_reports, icon: TriangleAlert },
+          { label: "Signalements", href: urls.admin_reports, icon: TriangleAlert, exact: true },
+          { label: "Équipes", href: urls.admin_teams, icon: HardHat },
+          { label: "Animaux", href: urls.admin_animals, icon: PawPrint, exact: true },
+          { label: "Partenaires", href: urls.admin_partners, icon: HandHeart },
           { label: "Événements", href: urls.admin_events, icon: CalendarHeart },
+          { label: "Marché local", href: urls.admin_marketplace, icon: ShoppingBasket },
+          { label: "Mobilité", href: urls.admin_mobilite, icon: Bike, exact: true, also: "/mobilite/gestion/stations/" },
+          { label: "Réservations", href: urls.admin_bookings, icon: CalendarCheck },
+          { label: "Propositions", href: urls.admin_transports, icon: Inbox },
         ],
       },
       {
@@ -58,16 +66,14 @@ function useNav(admin) {
         { label: "Mobilité", href: urls.mobilite, icon: Bike, not: urls.reservations },
         { label: "Signalements", href: urls.infrastructures, icon: TriangleAlert },
         { label: "Événements", href: urls.evenements, icon: CalendarHeart },
-        { label: "Observations animales", href: urls.animaux, icon: PawPrint },
+        { label: "Animaux", href: urls.animaux, icon: PawPrint },
         { label: "Marché local", href: urls.marketplace, icon: ShoppingBasket },
       ],
     },
     {
       title: "Mon compte",
       items: [
-        { label: "Mes réservations", href: urls.reservations, icon: CalendarCheck },
-        { label: "Mes produits", href: urls.mes_produits, icon: Package },
-        { label: "Mon panier", href: urls.mon_panier, icon: ShoppingCart },
+        ...(auth.user?.is_staff ? [] : [{ label: "Mes réservations", href: urls.reservations, icon: CalendarCheck }]),
         { label: "Mon profil", href: urls.profile, icon: UserRound, also: urls.password_change },
         ...(auth.user?.is_staff ? [{ label: "Administration", href: urls.admin_dashboard, icon: ShieldCheck }] : []),
         { label: "La ville en 3D", href: urls.home, icon: Building2, exact: true },
@@ -82,7 +88,7 @@ function NavContent({ admin, onNavigate }) {
   const groups = useNav(admin);
   const isActive = (it) => {
     if (it.external) return false;
-    if (it.exact) return path === it.href;
+    if (it.exact) return path === it.href || (!!it.also && path.startsWith(it.also));
     if (it.not && path.startsWith(it.not)) return false;
     return path.startsWith(it.href) || (it.also && path.startsWith(it.also));
   };
@@ -93,7 +99,7 @@ function NavContent({ admin, onNavigate }) {
         <LogoMark tone="lime" className="size-10" />
         <span>
           <b className="block leading-tight font-semibold tracking-tight">Smart City</b>
-          <span className="text-xs text-paper/50">{admin ? "Administration" : "Valmont"}</span>
+          <span className="text-xs text-paper/50">{admin ? "Administration" : "My City"}</span>
         </span>
       </Link>
 

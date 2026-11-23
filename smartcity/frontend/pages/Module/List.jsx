@@ -3,8 +3,7 @@
 import { useMemo, useState } from "react";
 import { Head } from "@inertiajs/react";
 import { AnimatePresence, motion } from "motion/react";
-import { Clock, MapPin, Plus, Search, ShoppingCart, Sparkles, UserRound } from "lucide-react";
-import { router, usePage } from "@inertiajs/react";
+import { Clock, MapPin, Plus, Search, Sparkles, UserRound } from "lucide-react";
 import { appLayout } from "../../layouts/AppShell";
 import { Badge, Btn, Chips, EmptyState, MODULES, PageHeader, STATUS_TONE, cn, fmtDay, fmtMonth, fmtRelative, fmtTime, fmtWeekday } from "../../lib/ui";
 
@@ -12,49 +11,8 @@ const EMPTY = {
   infrastructures: ["Tout est calme ici.", "Aucun signalement pour le moment. Vous avez repéré un problème ?"],
   evenements: ["Rien de prévu pour l'instant.", "Soyez le premier à proposer un événement aux habitants."],
   animaux: ["Aucune observation.", "Un animal croisé en ville ? Partagez-le."],
-  marketplace: ["Le marché est vide.", "Aucun produit disponible pour le moment."],
+  marketplace: ["Le marché est vide.", "Proposez le premier produit local."],
 };
-
-function AddToCartBtn({ item }) {
-  const { auth } = usePage().props;
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-
-  if (!auth.user) return null;
-
-  const handleClick = () => {
-    if (loading || done) return;
-    setLoading(true);
-    router.post(
-      item.add_to_cart_url,
-      {},
-      {
-        preserveScroll: true,
-        onSuccess: () => { setDone(true); setLoading(false); setTimeout(() => setDone(false), 2000); },
-        onError: () => setLoading(false),
-        onFinish: () => setLoading(false),
-      }
-    );
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={loading}
-      title="Ajouter au panier"
-      className={cn(
-        "mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold transition",
-        done
-          ? "bg-green/10 text-green"
-          : "bg-deep text-lime hover:bg-ink disabled:opacity-60"
-      )}
-    >
-      <ShoppingCart className="size-4 shrink-0" />
-      {done ? "Ajouté !" : loading ? "…" : "Ajouter au panier"}
-    </button>
-  );
-}
 
 function ItemCard({ item, ns, index }) {
   const Icon = MODULES[ns]?.icon || Sparkles;
@@ -94,12 +52,6 @@ function ItemCard({ item, ns, index }) {
 
       <div className="flex flex-1 flex-col p-5">
         <h3 className="font-serif text-2xl leading-tight font-medium">{item.title}</h3>
-        {/* Quantité + unité pour le marché local */}
-        {item.quantite && item.unite_label && (
-          <p className="mt-1 text-sm font-semibold text-green">
-            {item.quantite} {item.unite_label}
-          </p>
-        )}
         {item.event_date && (
           <p className="mt-1 text-sm font-medium text-green capitalize">
             {fmtWeekday(item.event_date)} · {fmtTime(item.event_date)}
@@ -123,14 +75,12 @@ function ItemCard({ item, ns, index }) {
             </span>
           )}
         </div>
-        {/* Bouton panier uniquement pour le marché local */}
-        {item.add_to_cart_url && <AddToCartBtn item={item} />}
       </div>
     </motion.article>
   );
 }
 
-export default function ModuleList({ title, subtitle, ns, add_label, create_url, filters, items, hide_add }) {
+export default function ModuleList({ title, subtitle, ns, add_label, create_url, filters, items }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("");
   const Icon = MODULES[ns]?.icon || Sparkles;
@@ -147,11 +97,9 @@ export default function ModuleList({ title, subtitle, ns, add_label, create_url,
     <>
       <Head title={title} />
       <PageHeader eyebrow="Services citoyens" title={title} subtitle={subtitle} icon={Icon}>
-        {!hide_add && (
-          <Btn href={create_url} icon={Plus} size="lg">
-            {add_label}
-          </Btn>
-        )}
+        <Btn href={create_url} icon={Plus} size="lg">
+          {add_label}
+        </Btn>
       </PageHeader>
 
       {items.length > 0 && (
@@ -173,11 +121,9 @@ export default function ModuleList({ title, subtitle, ns, add_label, create_url,
 
       {items.length === 0 ? (
         <EmptyState icon={Icon} title={emptyTitle} text={emptyText}>
-          {!hide_add && (
-            <Btn href={create_url} icon={Plus}>
-              {add_label}
-            </Btn>
-          )}
+          <Btn href={create_url} icon={Plus}>
+            {add_label}
+          </Btn>
         </EmptyState>
       ) : shown.length === 0 ? (
         <EmptyState icon={Search} title="Aucun résultat" text="Essayez un autre mot ou retirez le filtre.">

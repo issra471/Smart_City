@@ -12,10 +12,10 @@ from .inertia_utils import InertiaFormMixin, InertiaMixin, iso
 MODULES = [
     {"label": "Me déplacer", "ns": "mobilite", "desc": "Stations, réservations, trajets. Trouvez une station et préparez votre prochain départ."},
     {"label": "Signaler un problème", "ns": "infrastructures", "desc": "Voirie, éclairage, mobilier. Aidez à repérer les problèmes dans l'espace public."},
-    {"label": "Sortir à Valmont", "ns": "evenements", "desc": "Culture, nature, rencontres. Explorez les événements et retrouvez vos inscriptions."},
-    {"label": "Observer un animal", "ns": "animaux", "desc": "Observations, soin. Signalez une présence et consultez les observations proches."},
+    {"label": "Sortir à My City", "ns": "evenements", "desc": "Culture, nature, rencontres. Explorez les événements et retrouvez vos inscriptions."},
+    {"label": "Aider un animal", "ns": "animaux", "desc": "Animal blessé, errant ou en danger : placez-le sur la carte, un partenaire intervient. Partagez aussi vos observations."},
     {"label": "Acheter local", "ns": "marketplace", "desc": "Produits, commandes. Découvrez les produits proposés par le marché local."},
-    {"label": "Mon espace vendeur", "ns": "marketplace", "url": "marketplace:mes_produits", "desc": "Mes produits. Gérez vos annonces. Accès préservé à titre de producteur."},
+    {"label": "Mon espace vendeur", "ns": "marketplace", "url": "marketplace:create", "desc": "Mes produits. Gérez vos annonces. Accès préservé à titre de producteur."},
 ]
 
 
@@ -48,13 +48,13 @@ def dashboard(request):
     from evenements.models import Evenement
     from infrastructures.models import Signalement
     from marketplace.models import Produit
-    from mobilite.models import Reservation, Station
+    from mobilite.models import Reservation, Station, Transport
 
     user, now = request.user, timezone.now()
     my_reports = Signalement.objects.filter(user=user)
     next_res = (
         Reservation.objects.filter(user=user, statut="confirmee", date_depart__gte=now)
-        .select_related("station")
+        .select_related("depart", "arrivee", "transport")
         .order_by("date_depart")
         .first()
     )
@@ -62,7 +62,7 @@ def dashboard(request):
         "modules": modules_payload(),
         "city": {
             "stations": Station.objects.count(),
-            "units": Station.objects.aggregate(n=Sum("unites_disponibles"))["n"] or 0,
+            "units": Transport.stock().aggregate(n=Sum("unites_disponibles"))["n"] or 0,
             "events": Evenement.objects.filter(date__gte=now).count(),
             "open_reports": Signalement.objects.exclude(statut="resolu").count(),
             "products": Produit.objects.count(),
@@ -79,9 +79,9 @@ def dashboard(request):
         ],
         "next_reservation": next_res
         and {
-            "station": next_res.station.nom,
-            "type": next_res.station.type,
-            "type_label": next_res.station.get_type_display(),
+            "station": f"{next_res.depart.nom} → {next_res.arrivee.nom}",
+            "type": next_res.transport.type,
+            "type_label": next_res.transport.get_type_display(),
             "units": next_res.nombre,
             "date": iso(next_res.date_depart),
         },

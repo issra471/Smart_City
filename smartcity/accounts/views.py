@@ -25,7 +25,7 @@ class SignUpView(InertiaFormMixin, CreateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         login(self.request, self.object)
-        messages.success(self.request, "Bienvenue à Valmont ! Votre compte est créé.")
+        messages.success(self.request, "Bienvenue à My City ! Votre compte est créé.")
         return response
 
 

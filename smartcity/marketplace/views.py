@@ -1,207 +1,189 @@
+"""Marché local : les citoyens publient des produits, les autres consultent et contactent le vendeur.
+
+Le vendeur modifie, marque « vendu » ou supprime son annonce.
+L'administration retire une annonce inappropriée (avec motif) et voit le tableau de gestion.
+"""
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
-from django.views.generic import ListView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-from core.inertia_utils import display_name, iso, InertiaMixin, InertiaFormMixin
-from core.views import ModuleCreateView, ModuleListView
-from .models import PanierItem, Produit, UNITES
-
-
-class ItemList(ModuleListView):
-    """Marché local : liste tous les produits (sans bouton d'ajout)."""
-    queryset = Produit.objects.select_related("vendeur")
-    title = "Marché local"
-    subtitle = "Découvrez les produits proposés par les habitants."
-    app_ns = "marketplace"
-    add_label = "Publier un produit"
-
-    def get_props(self, context):
-        props = super().get_props(context)
-        # Supprimer le bouton d'ajout dans la vue publique du marché
-        props["hide_add"] = True
-        # Ajouter l'URL d'ajout au panier pour chaque produit
-        user = self.request.user
-        panier_ids = set()
-        if user.is_authenticated:
-            panier_ids = set(
-                PanierItem.objects.filter(user=user).values_list("produit_id", flat=True)
-            )
-        return props
-
-    def serialize(self, o):
-        return {
-            **super().serialize(o),
-            "price": str(o.prix),
-            "quantite": str(o.quantite),
-            "unite": o.unite,
-            "unite_label": o.get_unite_display(),
-            "date": iso(o.created_at),
-            "author": display_name(o.vendeur),
-            "add_to_cart_url": reverse("marketplace:panier_ajouter", args=[o.pk]),
-        }
+from accounts.admin_views import StaffRequiredMixin
+from core.inertia_utils import InertiaFormMixin, InertiaMixin, display_name, iso
+from .forms import ProduitForm
+from .models import Produit
 
 
-class ItemCreate(ModuleCreateView):
-    model = Produit
-    fields = ["titre", "description", "prix", "quantite", "unite", "image"]
-    title = "Publier un produit"
-    intro = "Présentez votre produit avec une belle photo et un prix clair."
-    app_ns = "marketplace"
-    owner_field = "vendeur"
-    success_message = "Produit publié sur le marché local."
+def produit_payload(p, user):
+    return {
+        "id": p.pk,
+        "title": p.titre,
+        "description": p.description,
+        "category": p.categorie,
+        "category_label": p.get_categorie_display(),
+        "price": str(p.prix),
+        "status": p.statut,
+        "status_label": p.get_statut_display(),
+        "phone": p.telephone,
+        "image": p.image.url if p.image else None,
+        "author": display_name(p.vendeur),
+        "mine": user.is_authenticated and p.vendeur_id == user.pk,
+        "reason": p.motif_retrait,
+        "date": iso(p.created_at),
+        "url": reverse("marketplace:detail", args=[p.pk]),
+    }
 
-    def get_success_url(self):
-        return reverse("marketplace:mes_produits")
+
+# ------------------------------------------------------------------ Citoyens
 
 
-class MesProduits(LoginRequiredMixin, InertiaMixin, ListView):
-    """Mes produits : liste des produits de l'utilisateur connecté."""
-    component = "Marketplace/MesProduits"
+class ItemList(InertiaMixin, ListView):
+    component = "Marketplace/List"
 
     def get_queryset(self):
-        return Produit.objects.filter(vendeur=self.request.user)
+        return Produit.objects.select_related("vendeur").exclude(statut="retire")
 
     def get_props(self, context):
+        user = self.request.user
         return {
-            "produits": [
-                {
-                    "id": p.pk,
-                    "titre": p.titre,
-                    "description": p.description,
-                    "prix": str(p.prix),
-                    "quantite": str(p.quantite),
-                    "unite": p.unite,
-                    "unite_label": p.get_unite_display(),
-                    "image": p.image.url if p.image else None,
-                    "date": iso(p.created_at),
-                    "edit_url": reverse("marketplace:produit_modifier", args=[p.pk]),
-                    "delete_url": reverse("marketplace:produit_supprimer", args=[p.pk]),
-                }
-                for p in context["object_list"]
-            ],
+            "items": [produit_payload(p, user) for p in context["object_list"]],
+            "categories": [{"value": v, "label": label} for v, label in Produit.CATEGORIES],
             "create_url": reverse("marketplace:create"),
+            "manage_url": reverse("marketplace:admin") if user.is_staff else None,
         }
 
 
-class ProduitModifier(LoginRequiredMixin, InertiaFormMixin, UpdateView):
-    """Modifier un produit existant."""
-    model = Produit
-    fields = ["titre", "description", "prix", "quantite", "unite", "image"]
-    component = "Module/Form"
-
-    def get_object(self, queryset=None):
-        return get_object_or_404(Produit, pk=self.kwargs["pk"], vendeur=self.request.user)
-
-    def get_success_url(self):
-        messages.success(self.request, "Produit mis à jour.")
-        return reverse("marketplace:mes_produits")
+class FormPageMixin(InertiaFormMixin):
+    component = "Marketplace/Form"
 
     def get_props(self, context):
-        props = super().get_props(context)
-        props["title"] = "Modifier le produit"
-        props["intro"] = "Modifiez les informations de votre produit."
-        props["ns"] = "marketplace"
-        props["list_url"] = reverse("marketplace:mes_produits")
-        return props
+        editing = bool(self.object and self.object.pk)
+        return {
+            **super().get_props(context),
+            "categories": [{"value": v, "label": label} for v, label in Produit.CATEGORIES],
+            "editing": editing,
+            "current_image": self.object.image.url if editing and self.object.image else None,
+            "action": self.request.path,
+            "cancel_url": reverse("marketplace:detail", args=[self.object.pk]) if editing else reverse("marketplace:list"),
+        }
+
+
+class ItemCreate(LoginRequiredMixin, FormPageMixin, CreateView):
+    model = Produit
+    form_class = ProduitForm
+
+    def form_valid(self, form):
+        form.instance.vendeur = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, "Produit publié sur le marché local.")
+        return response
+
+    def get_success_url(self):
+        return reverse("marketplace:detail", args=[self.object.pk])
+
+
+class ItemUpdate(LoginRequiredMixin, FormPageMixin, UpdateView):
+    model = Produit
+    form_class = ProduitForm
+
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if not obj.modifiable_par(self.request.user):
+            raise PermissionDenied
+        return obj
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        messages.success(self.request, "Produit mis à jour.")
+        messages.success(self.request, "Produit modifié.")
         return response
 
+    def get_success_url(self):
+        return reverse("marketplace:detail", args=[self.object.pk])
 
-class MonPanier(LoginRequiredMixin, InertiaMixin, ListView):
-    """Mon panier : articles ajoutés par l'utilisateur connecté."""
-    component = "Marketplace/MonPanier"
+
+class ItemDetail(InertiaMixin, DetailView):
+    model = Produit
+    component = "Marketplace/Detail"
 
     def get_queryset(self):
-        return PanierItem.objects.filter(user=self.request.user).select_related("produit", "produit__vendeur")
+        return Produit.objects.select_related("vendeur")
 
     def get_props(self, context):
-        items = context["object_list"]
-        total = sum(item.total for item in items)
+        p, user = self.object, self.request.user
         return {
-            "items": [
-                {
-                    "id": item.pk,
-                    "produit_id": item.produit.pk,
-                    "titre": item.produit.titre,
-                    "prix": str(item.produit.prix),
-                    "quantite_panier": item.quantite,
-                    "quantite_dispo": str(item.produit.quantite),
-                    "unite": item.produit.unite,
-                    "unite_label": item.produit.get_unite_display(),
-                    "image": item.produit.image.url if item.produit.image else None,
-                    "vendeur": display_name(item.produit.vendeur),
-                    "total": str(item.total),
-                    "remove_url": reverse("marketplace:panier_supprimer", args=[item.pk]),
-                }
-                for item in items
-            ],
-            "total": str(total),
-            "clear_url": reverse("marketplace:panier_vider"),
-            "commande_url": reverse("marketplace:passer_commande"),
+            "product": produit_payload(p, user),
+            "can_edit": p.modifiable_par(user),
+            "can_delete": p.supprimable_par(user),
+            "can_contact": user.is_authenticated and not user.is_staff and p.vendeur_id != user.pk and p.statut == "disponible",
+            "edit_url": reverse("marketplace:update", args=[p.pk]),
+            "delete_url": reverse("marketplace:delete", args=[p.pk]),
+            "mark_sold_url": reverse("marketplace:mark_sold", args=[p.pk]),
+            "list_url": reverse("marketplace:admin") if user.is_staff else reverse("marketplace:list"),
         }
 
 
-# ── Vues d'action (POST) ────────────────────────────────────────────────────
-
 @login_required
 @require_POST
-def panier_ajouter(request, pk):
-    produit = get_object_or_404(Produit, pk=pk)
-    item, created = PanierItem.objects.get_or_create(
-        user=request.user, produit=produit,
-        defaults={"quantite": 1}
-    )
-    if not created:
-        item.quantite += 1
-        item.save()
-    messages.success(request, f"« {produit.titre} » ajouté au panier.")
-    return redirect("marketplace:list")
+def supprimer(request, pk):
+    p = get_object_or_404(Produit, pk=pk)
+    if not p.supprimable_par(request.user):
+        raise PermissionDenied
+    p.delete()
+    messages.success(request, "Produit supprimé.")
+    return redirect("marketplace:admin" if request.user.is_staff else "marketplace:list")
 
 
 @login_required
 @require_POST
-def panier_supprimer(request, pk):
-    item = get_object_or_404(PanierItem, pk=pk, user=request.user)
-    nom = item.produit.titre
-    item.delete()
-    messages.success(request, f"« {nom} » retiré du panier.")
-    return redirect("marketplace:mon_panier")
+def mark_sold(request, pk):
+    p = get_object_or_404(Produit, pk=pk)
+    if p.vendeur != request.user:
+        raise PermissionDenied
+    if p.statut == "disponible":
+        p.statut = "vendu"
+        p.save()
+        messages.success(request, "Marqué comme vendu.")
+    elif p.statut == "vendu":
+        p.statut = "disponible"
+        p.save()
+        messages.success(request, "Remis en vente.")
+    return redirect("marketplace:detail", pk=pk)
 
 
-@login_required
+# ------------------------------------------------------------------ Administration
+
+
+class AdminMarketplace(StaffRequiredMixin, InertiaMixin, ListView):
+    component = "Admin/Marketplace"
+
+    def get_queryset(self):
+        return Produit.objects.select_related("vendeur")
+
+    def get_props(self, context):
+        user = self.request.user
+        return {
+            "items": [produit_payload(p, user) for p in context["object_list"]],
+            "categories": [{"value": v, "label": label} for v, label in Produit.CATEGORIES],
+        }
+
+
 @require_POST
-def panier_vider(request):
-    PanierItem.objects.filter(user=request.user).delete()
-    messages.success(request, "Votre panier a été vidé.")
-    return redirect("marketplace:mon_panier")
-
-
 @login_required
-@require_POST
-def passer_commande(request):
-    items = PanierItem.objects.filter(user=request.user).select_related("produit")
-    if not items.exists():
-        messages.error(request, "Votre panier est vide.")
-        return redirect("marketplace:mon_panier")
-    # Simuler une commande : vider le panier et confirmer
-    count = items.count()
-    items.delete()
-    messages.success(request, f"Commande passée avec succès ! ({count} article{'s' if count > 1 else ''})")
-    return redirect("marketplace:list")
-
-
-@login_required
-@require_POST
-def produit_supprimer(request, pk):
-    produit = get_object_or_404(Produit, pk=pk, vendeur=request.user)
-    nom = produit.titre
-    produit.delete()
-    messages.success(request, f"« {nom} » supprimé.")
-    return redirect("marketplace:mes_produits")
+def retirer(request, pk):
+    """L'admin retire une annonce avec un motif."""
+    if not request.user.is_staff:
+        raise PermissionDenied
+    p = get_object_or_404(Produit, pk=pk)
+    motif = request.POST.get("motif", "").strip()
+    if len(motif) < 3:
+        messages.error(request, "Indiquez un motif de retrait (3 caractères minimum).")
+        return redirect("marketplace:admin")
+    p.statut = "retire"
+    p.motif_retrait = motif
+    p.save()
+    messages.success(request, f"« {p.titre} » retiré du marché.")
+    return redirect("marketplace:admin")

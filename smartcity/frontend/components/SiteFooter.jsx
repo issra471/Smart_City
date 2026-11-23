@@ -37,9 +37,9 @@ export default function SiteFooter() {
         className="pointer-events-none -mb-[0.22em] text-center font-serif text-[22vw] leading-none italic text-transparent select-none"
         style={{ WebkitTextStroke: "1px rgb(200 241 105 / 0.35)" }}
       >
-        Valmont
+        My City
       </div>
-      <div className="relative border-t border-paper/10 py-5 text-center text-sm text-paper/50">© 2026 Smart City · Valmont</div>
+      <div className="relative border-t border-paper/10 py-5 text-center text-sm text-paper/50">© 2026 Smart City · My City</div>
     </footer>
   );
 }
