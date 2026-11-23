@@ -32,7 +32,7 @@ export default function Dashboard({ modules, city, mine, report_status, next_res
   const myStats = [
     [mine.reservations, "Réservations", CalendarCheck, urls.reservations],
     [mine.reports, "Signalements", TriangleAlert, urls.infrastructures],
-    [mine.observations, "Observations", PawPrint, urls.animaux],
+    [mine.observations, "Animaux signalés", PawPrint, urls.animaux],
     [mine.products, "Produits", ShoppingBasket, urls.marketplace],
   ];
 
@@ -45,11 +45,13 @@ export default function Dashboard({ modules, city, mine, report_status, next_res
           <h1 className="font-serif text-5xl leading-[1.02] font-medium tracking-tight sm:text-6xl">
             {hello} <em className="text-green">{auth.user.first_name || auth.user.username}</em>,
           </h1>
-          <p className="mt-2 text-muted">Voici ce qui se passe à Valmont et dans votre espace.</p>
+          <p className="mt-2 text-muted">Voici ce qui se passe à My City et dans votre espace.</p>
         </div>
-        <Btn href={urls.infrastructures_create} icon={Plus} size="lg">
-          Nouveau signalement
-        </Btn>
+        {!auth.user?.is_staff && (
+          <Btn href={urls.infrastructures_create} icon={Plus} size="lg">
+            Nouveau signalement
+          </Btn>
+        )}
       </header>
 
       <div className="grid gap-4 lg:grid-cols-6">
@@ -67,7 +69,7 @@ export default function Dashboard({ modules, city, mine, report_status, next_res
                   En direct
                 </p>
                 <h2 className="mt-2 font-serif text-4xl leading-tight">
-                  Le pouls de <em className="text-lime">Valmont</em>
+                  Le pouls de <em className="text-lime">My City</em>
                 </h2>
               </div>
               <Link href={urls.home} className="group flex items-center gap-2 rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold transition hover:bg-white/10">
@@ -170,7 +172,7 @@ export default function Dashboard({ modules, city, mine, report_status, next_res
         {/* Événements à venir */}
         <Tile delay={0.18} className="lg:col-span-2">
           <Card className="flex h-full flex-col p-7">
-            <h2 className="font-serif text-2xl">À venir à Valmont</h2>
+            <h2 className="font-serif text-2xl">À venir à My City</h2>
             {events.length === 0 ? (
               <p className="mt-3 text-sm text-muted">Aucun événement annoncé pour le moment. Et si vous en proposiez un ?</p>
             ) : (

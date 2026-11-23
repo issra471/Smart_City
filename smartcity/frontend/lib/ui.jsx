@@ -1,6 +1,6 @@
 // Composants et outils partagés par toutes les pages de l'application.
 import { Link } from "@inertiajs/react";
-import { ArrowRight, Bike, Bus, CalendarHeart, Car, PawPrint, ShoppingBasket, TriangleAlert, Zap } from "lucide-react";
+import { Apple, Armchair, ArrowRight, Bike, Binoculars, Bird, Briefcase, Bus, CalendarHeart, Cat, CircleHelp, Construction, Dog, Droplets, Dumbbell, Footprints, HeartOff, HeartPulse, Leaf, Lightbulb, Moped, Palette, PawPrint, Scooter, Shirt, ShoppingBasket, Siren, Sparkles, Squirrel, Store, Trash2, TriangleAlert, Turtle, Wrench } from "lucide-react";
 
 export const cn = (...parts) => parts.filter(Boolean).join(" ");
 export const ease = [0.22, 1, 0.36, 1];
@@ -11,11 +11,29 @@ export const MODULES = {
   mobilite: { icon: Bike, short: "Mobilité" },
   infrastructures: { icon: TriangleAlert, short: "Signalements" },
   evenements: { icon: CalendarHeart, short: "Événements" },
-  animaux: { icon: PawPrint, short: "Observations" },
+  animaux: { icon: PawPrint, short: "Animaux" },
   marketplace: { icon: ShoppingBasket, short: "Marché local" },
 };
 
-export const STATION_ICONS = { velo: Bike, trottinette: Zap, bus: Bus, covoiturage: Car };
+export const STATION_ICONS = { velo: Bike, trottinette: Scooter, scooter: Moped, bus: Bus };
+
+/** Catégories de signalement : icône. Couleurs des statuts sur la carte. */
+export const REPORT_ICONS = { voirie: Construction, eclairage: Lightbulb, mobilier: Armchair, eau: Droplets, dechets: Trash2, autre: CircleHelp };
+export const REPORT_COLORS = { ouvert: "#e0603a", en_cours: "#d99a16", resolu: "#087a5b", rejete: "#9aa8a3" };
+
+/** Animaux : icône de l'animal, icône du type de cas, couleur des observations (sans suivi). */
+export const ANIMAL_ICONS = { chien: Dog, chat: Cat, oiseau: Bird, tortue: Turtle, petit: Squirrel, autre: PawPrint };
+export const CASE_ICONS = { blesse: HeartPulse, errant: Footprints, danger: Siren, mort: HeartOff, observation: Binoculars };
+export const OBSERVATION_COLOR = "#3a7bb8";
+export const animalColor = (a) => (a.urgent ? REPORT_COLORS[a.status] : OBSERVATION_COLOR);
+
+/** Événements : icône de catégorie et couleurs de statut. */
+export const EVENT_ICONS = { culture: Palette, sport: Dumbbell, nature: Leaf, marche: Store, atelier: Wrench, autre: Sparkles };
+export const EVENT_COLORS = { avenir: "#087a5b", en_cours: "#d99a16", passe: "#9aa8a3" };
+
+/** Marketplace : icône de catégorie et couleurs de statut. */
+export const MARKET_ICONS = { alimentaire: Apple, artisanat: Palette, vetements: Shirt, services: Briefcase, autre: Sparkles };
+export const MARKET_COLORS = { disponible: "#087a5b", vendu: "#9aa8a3", retire: "#e0603a" };
 
 /* ------------------------------ Dates ------------------------------ */
 
@@ -95,7 +113,7 @@ const TONES = {
   muted: "bg-ink/5 text-muted",
   paper: "bg-paper/90 text-ink backdrop-blur",
 };
-export const STATUS_TONE = { ouvert: "coral", en_cours: "amber", resolu: "green", confirmee: "green", annulee: "muted" };
+export const STATUS_TONE = { ouvert: "coral", en_cours: "amber", resolu: "green", confirmee: "green", annulee: "muted", en_attente: "amber", approuve: "green", refuse: "coral", rejete: "muted", retire: "muted", avenir: "green", passe: "muted", disponible: "green", vendu: "muted" };
 
 export function Badge({ tone = "green", dot, className, children }) {
   return (

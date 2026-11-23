@@ -1,4 +1,4 @@
-// Scène 3D de Valmont (React Three Fiber). Chargée à la demande par CityHero.
+// Scène 3D de My City (React Three Fiber). Chargée à la demande par CityHero.
 // Repère : x et z vont de 0 à 12 (plan de la ville), y = hauteur.
 import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
@@ -26,7 +26,7 @@ const capGeo = new THREE.CapsuleGeometry(0.07, 0.16, 4, 10);
 const SPOTS = [
   { anchor: [2.5, 3.72, 2.2], dx: 0, stem: 22, cstem: 12, card: [200, 180], cx: 2.5, cz: 3.05, w: 3.7, d: 3.9 }, // gare -> Me déplacer (fiche décalée pour ne pas passer sous le menu)
   { anchor: [9.15, 0.75, 6.5], dx: 50, stem: 30, cstem: 6, cx: 9.1, cz: 6.5, w: 1.5, d: 1.0 }, //    chantier -> Signaler un problème
-  { anchor: [7.3, 1.72, 8.9], dx: -34, stem: 26, cstem: 12, cx: 8, cz: 8.6, w: 2.9, d: 2.1 }, //     salle    -> Sortir à Valmont
+  { anchor: [7.3, 1.72, 8.9], dx: -34, stem: 26, cstem: 12, cx: 8, cz: 8.6, w: 2.9, d: 2.1 }, //     salle    -> Sortir à My City
   { anchor: [2.5, 0.2, 9.5], dx: 0, stem: 56, cstem: 14, cx: 2.5, cz: 9.5, w: 4.2, d: 4.2 }, //      parc     -> Observer un animal
   { anchor: [8.3, 1.1, 10.7], dx: 0, stem: 22, cstem: 10, cx: 8.05, cz: 10.8, w: 3.3, d: 1.8 }, //   marché   -> Acheter local
   { anchor: [7.95, 1.3, 4.55], dx: 44, stem: 26, cstem: 34, cx: 7.95, cz: 4.65, w: 1.9, d: 1.9 }, // boutique -> Mon espace vendeur

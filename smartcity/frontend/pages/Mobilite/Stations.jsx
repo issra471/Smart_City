@@ -1,132 +1,362 @@
+// Me déplacer : carte des stations + réservation d'une balade d'une station vers une autre.
 import { useMemo, useState } from "react";
-import { Head, usePage } from "@inertiajs/react";
-import { AnimatePresence, motion } from "motion/react";
-import { Bike, CalendarCheck, MapPin, Plus, Search } from "lucide-react";
+import { Head, router, usePage } from "@inertiajs/react";
+import { AlertCircle, ArrowDown, Bike, CalendarCheck, LayoutDashboard, Loader2, MapPin, Minus, Plus, RotateCcw, ShieldCheck } from "lucide-react";
+import StationMap from "../../components/StationMap";
 import { appLayout } from "../../layouts/AppShell";
-import { Badge, Btn, Chips, EmptyState, PageHeader, STATION_ICONS, cn } from "../../lib/ui";
+import { Badge, Btn, Card, EmptyState, PageHeader, STATION_ICONS, STATUS_TONE, cn, fmtRelative } from "../../lib/ui";
 
-function StationCard({ s, index }) {
-  const Icon = STATION_ICONS[s.type] || Bike;
-  const full = s.units === 0;
-  const low = !full && s.units <= 2;
+const SPEED = { velo: 15, trottinette: 20, scooter: 35, bus: 30 }; // km/h, pour une durée approximative
+
+/** Distance en km entre deux stations (à vol d'oiseau). */
+function distanceKm(a, b) {
+  const rad = (d) => (d * Math.PI) / 180;
+  const h = Math.sin(rad(b.lat - a.lat) / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+
+function Stop({ letter, tone, label, station, hint }) {
   return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.3) }}
-      className="group flex flex-col rounded-[1.75rem] border border-line bg-paper p-6 transition-shadow hover:shadow-[0_24px_60px_#15362e1a]"
-    >
-      <div className="flex items-start justify-between">
-        <span className={cn("grid size-14 place-items-center rounded-2xl transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-110", full ? "bg-ink/5 text-muted" : "bg-mint text-green")}>
-          <Icon className="size-7" />
-        </span>
-        <Badge tone="muted">{s.type_label}</Badge>
+    <div className="flex items-center gap-3">
+      <span className={cn("grid size-10 shrink-0 place-items-center rounded-full font-bold", station ? tone : "border border-dashed border-white/25 text-paper/40")}>{letter}</span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-paper/50 uppercase">{label}</p>
+        <p className={cn("truncate font-serif text-2xl leading-tight", !station && "text-paper/40")}>{station ? station.name : hint}</p>
       </div>
-      <h3 className="mt-5 font-serif text-2xl leading-tight font-medium">{s.name}</h3>
-      <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted">
-        <MapPin className="size-3.5 shrink-0" /> {s.address || "Adresse non renseignée"}
-      </p>
-
-      <div className="mt-6 flex items-end justify-between gap-3 border-t border-line pt-5">
-        <div>
-          <p className="font-serif text-4xl leading-none font-medium">{s.units}</p>
-          <p className={cn("mt-1 flex items-center gap-1.5 text-xs font-medium", full ? "text-muted" : low ? "text-[#b4532f]" : "text-green")}>
-            <i className={cn("size-1.5 rounded-full", full ? "bg-muted" : low ? "bg-coral" : "bg-green")} />
-            {full ? "Complet" : low ? "Bientôt complet" : `disponible${s.units > 1 ? "s" : ""}`}
-          </p>
-        </div>
-        {full ? (
-          <span className="rounded-full bg-ink/5 px-4 py-2.5 text-sm text-muted">Indisponible</span>
-        ) : (
-          <Btn href={s.reserve_url} arrow>
-            Réserver
-          </Btn>
-        )}
-      </div>
-    </motion.article>
+    </div>
   );
 }
 
-export default function Stations({ stations, types, current_type }) {
-  const { urls } = usePage().props;
-  const [type, setType] = useState(current_type || "");
-  const [query, setQuery] = useState("");
+function Err({ list }) {
+  return (list || []).map((e) => (
+    <p key={e} role="alert" className="mt-2 flex items-start gap-1.5 text-[13px] font-medium text-coral">
+      <AlertCircle className="mt-0.5 size-3.5 shrink-0" /> {e}
+    </p>
+  ));
+}
 
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return stations.filter((s) => (!type || s.type === type) && (!q || s.name.toLowerCase().includes(q) || s.address.toLowerCase().includes(q)));
-  }, [stations, type, query]);
+/** Panneau de l'administrateur : la station choisie sur la carte et le lien vers sa gestion. */
+function AdminPanel({ station: s, adminUrl }) {
+  return (
+    <div className="grain relative overflow-hidden rounded-[1.75rem] bg-deep p-6 text-paper sm:p-7">
+      <div aria-hidden="true" className="absolute -top-24 -right-24 size-64 animate-blob rounded-full bg-green/50 blur-3xl" />
+      <div className="relative">
+        <p className="text-xs font-semibold tracking-[0.14em] text-lime uppercase">Administration</p>
+        {s ? (
+          <>
+            <h2 className="mt-3 font-serif text-3xl leading-tight">{s.name}</h2>
+            <p className="mt-1 text-sm text-paper/60">{s.address || "Adresse non renseignée"}</p>
+            <ul className="mt-5 flex flex-col gap-2">
+              {s.transports.length === 0 && <li className="text-sm text-paper/60">Aucun transport dans cette station.</li>}
+              {s.transports.map((t) => {
+                const Icon = STATION_ICONS[t.type] || Bike;
+                return (
+                  <li key={t.id} className="flex items-center gap-3 rounded-2xl bg-white/[0.07] px-4 py-2.5 text-sm">
+                    <Icon className="size-4 text-lime" /> <span className="flex-1">{t.type_label}</span>
+                    <b>{t.units}</b>
+                    {t.maintenance > 0 && <span className="text-xs text-paper/50">+{t.maintenance} en maintenance</span>}
+                  </li>
+                );
+              })}
+            </ul>
+            <Btn href={s.manage_url} variant="lime" size="lg" arrow className="mt-6 w-full">
+              Gérer cette station
+            </Btn>
+          </>
+        ) : (
+          <>
+            <h2 className="mt-3 font-serif text-3xl leading-tight">Vue de la ville</h2>
+            <p className="mt-2 text-sm text-paper/65">Cliquez sur une station pour voir son stock. Les réservations sont faites par les citoyens ; vous les suivez depuis le tableau de gestion.</p>
+            <Btn href={adminUrl} variant="lime" size="lg" arrow className="mt-6 w-full">
+              Tableau de gestion
+            </Btn>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
-  const chips = [
-    { value: "", label: "Tous", count: stations.length },
-    ...types.map((t) => ({ ...t, icon: STATION_ICONS[t.value], count: stations.filter((s) => s.type === t.value).length })),
-  ];
-  const units = stations.reduce((n, s) => n + s.units, 0);
+export default function Stations({ stations, form, proposals, propose_url, pending, admin_url }) {
+  const { auth, urls } = usePage().props;
+  const admin = !!auth.user?.is_staff; // l'administration gère, elle ne réserve pas
+  const [sel, setSel] = useState(null);
+  const initial = Object.fromEntries(form.fields.map((f) => [f.name, f.value]));
+  const [fromId, setFromId] = useState(Number(initial.depart) || null);
+  const [toId, setToId] = useState(Number(initial.arrivee) || null);
+  const [transportId, setTransportId] = useState(Number(initial.transport) || null);
+  const [date, setDate] = useState(initial.date_depart || "");
+  const [count, setCount] = useState(Number(initial.nombre) || 1);
+  const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false); // masque les anciennes erreurs dès qu'on modifie la balade
+
+  const errors = dirty ? {} : Object.fromEntries(form.fields.map((f) => [f.name, f.errors]));
+  const from = stations.find((s) => s.id === fromId) || null;
+  const to = stations.find((s) => s.id === toId) || null;
+  const available = from ? from.transports.filter((t) => t.units > 0) : [];
+  const transport = available.find((t) => t.id === transportId) || null;
+  const km = useMemo(() => (from && to ? distanceKm(from, to) : 0), [from, to]);
+  const minutes = transport ? Math.max(1, Math.round((km / SPEED[transport.type]) * 60)) : null;
+
+  function pick(id) {
+    if (admin) return setSel(id === sel ? null : id);
+    setDirty(true);
+    if (!fromId) return setFromId(id);
+    if (id === fromId) return (setFromId(null), setToId(null), setTransportId(null));
+    setToId(id === toId ? null : id);
+  }
+  function reset() {
+    setFromId(null), setToId(null), setTransportId(null), setCount(1), setDirty(true);
+  }
+  function submit(e) {
+    e.preventDefault();
+    router.post(
+      urls.mobilite,
+      { depart: fromId || "", arrivee: toId || "", transport: transport?.id || "", date_depart: date, nombre: count },
+      { forceFormData: true, preserveScroll: true, preserveState: true, onStart: () => setBusy(true), onFinish: () => (setBusy(false), setDirty(false)) },
+    );
+  }
+
+  const totalUnits = stations.reduce((n, s) => n + s.units, 0);
 
   return (
     <>
       <Head title="Me déplacer" />
-      <PageHeader eyebrow="Services citoyens" title="Me déplacer" subtitle="Vélos, trottinettes, bus électriques, covoiturage : trouvez une station et réservez." icon={Bike}>
-        <Btn href={urls.reservations} variant="ghost" icon={CalendarCheck}>
-          Mes réservations
-        </Btn>
-        <Btn href={urls.mobilite_create} icon={Plus}>
-          Ajouter une station
-        </Btn>
+      <PageHeader eyebrow="Services citoyens" title="Me déplacer" subtitle="Choisissez une station de départ, puis une station d'arrivée, et réservez votre transport." icon={Bike}>
+        {admin ? (
+          <>
+            <Btn href={urls.admin_transports} variant="soft" icon={ShieldCheck}>
+              À approuver{pending > 0 && ` (${pending})`}
+            </Btn>
+            <Btn href={admin_url} icon={LayoutDashboard}>
+              Tableau de gestion
+            </Btn>
+          </>
+        ) : (
+          <>
+            <Btn href={urls.reservations} variant="ghost" icon={CalendarCheck}>
+              Mes réservations
+            </Btn>
+            <Btn href={propose_url} variant="ghost" icon={Plus}>
+              Proposer un transport
+            </Btn>
+          </>
+        )}
       </PageHeader>
 
       {stations.length === 0 ? (
-        <EmptyState icon={Bike} title="Aucune station pour le moment." text="Ajoutez une première station pour commencer.">
-          <Btn href={urls.mobilite_create} icon={Plus}>
-            Ajouter une station
-          </Btn>
+        <EmptyState icon={MapPin} title="Aucune station pour le moment." text="Les stations sont ajoutées par l'administration de la ville.">
+          {auth.user?.is_staff && (
+            <Btn href={urls.mobilite_create} icon={MapPin}>
+              Ajouter une station
+            </Btn>
+          )}
         </EmptyState>
       ) : (
         <>
-          <div className="grain relative mb-6 grid gap-px overflow-hidden rounded-[1.75rem] bg-deep text-paper sm:grid-cols-3">
-            {[
-              [stations.length, "stations"],
-              [units, "unités disponibles"],
-              [stations.filter((s) => s.units === 0).length, "stations complètes"],
-            ].map(([n, label]) => (
-              <div key={label} className="relative px-6 py-5">
-                <p className="font-serif text-4xl leading-none font-medium text-lime">{n}</p>
-                <p className="mt-1.5 text-sm text-paper/60">{label}</p>
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1.35fr_1fr]">
+            {/* Carte */}
+            <Card className="overflow-hidden p-2">
+              <StationMap stations={stations} fromId={admin ? null : fromId} toId={admin ? null : toId} onPick={pick} className="h-[22rem] rounded-[1.4rem] sm:h-[32rem]" />
+              <p className="flex flex-wrap items-center gap-x-5 gap-y-1 px-4 py-3 text-xs text-muted">
+                <span>
+                  <b className="text-ink">{stations.length}</b> stations · <b className="text-ink">{totalUnits}</b> transports disponibles
+                </span>
+                {admin ? (
+                  <>
+                    <span className="flex items-center gap-1.5">
+                      <i className="size-2.5 rounded-full bg-[#d99a16]" /> bientôt vide
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <i className="size-2.5 rounded-full bg-coral" /> vide
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex items-center gap-1.5">
+                      <i className="size-2.5 rounded-full bg-deep" /> A = départ
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <i className="size-2.5 rounded-full bg-coral" /> B = arrivée
+                    </span>
+                  </>
+                )}
+              </p>
+            </Card>
+
+            {/* Administration : aperçu de la station choisie (pas de réservation) */}
+            {admin && <AdminPanel station={stations.find((s) => s.id === sel)} adminUrl={admin_url} />}
+
+            {/* Votre balade */}
+            {!admin && <form onSubmit={submit} noValidate className="grain relative overflow-hidden rounded-[1.75rem] bg-deep p-6 text-paper sm:p-7">
+              <div aria-hidden="true" className="absolute -top-24 -right-24 size-64 animate-blob rounded-full bg-green/50 blur-3xl" />
+              <div className="relative">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold tracking-[0.14em] text-lime uppercase">Votre balade</p>
+                  {(from || to) && (
+                    <button type="button" onClick={reset} className="flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-paper/60 hover:bg-white/10 hover:text-paper">
+                      <RotateCcw className="size-3" /> Recommencer
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-5 flex flex-col gap-2">
+                  <Stop letter="A" tone="bg-lime text-deep" label="Départ" station={from} hint="Cliquez sur une station" />
+                  <ArrowDown className="ml-3 size-4 text-paper/30" />
+                  <Stop letter="B" tone="bg-coral text-paper" label="Arrivée" station={to} hint={from ? "Cliquez sur une autre station" : "Puis l'arrivée"} />
+                </div>
+                <Err list={errors.depart} />
+                <Err list={errors.arrivee} />
+
+                {from && to && (
+                  <p className="mt-5 rounded-2xl bg-white/[0.07] px-4 py-3 text-sm text-paper/80">
+                    Environ <b className="text-paper">{km.toFixed(1).replace(".", ",")} km</b>
+                    {minutes != null && (
+                      <>
+                        {" "}· <b className="text-paper">{minutes} min</b> en {transport.type_label.toLowerCase()}
+                      </>
+                    )}
+                    <span className="block text-xs text-paper/45">Distance à vol d'oiseau, durée approximative.</span>
+                  </p>
+                )}
+
+                {from && (
+                  <div className="mt-6 border-t border-white/10 pt-5">
+                    <p className="mb-2.5 text-sm font-semibold">Transport à {from.name}</p>
+                    {available.length === 0 ? (
+                      <p className="text-sm text-paper/55">Aucun transport disponible dans cette station pour le moment.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {available.map((t) => {
+                          const Icon = STATION_ICONS[t.type] || Bike;
+                          const on = t.id === transport?.id;
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              aria-pressed={on}
+                              onClick={() => (setTransportId(t.id), setCount((n) => Math.min(n, t.units)), setDirty(true))}
+                              className={cn("flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition", on ? "border-lime bg-lime text-deep" : "border-white/15 hover:bg-white/10")}
+                            >
+                              <Icon className="size-4" /> {t.type_label}
+                              <span className={cn("rounded-full px-1.5 text-[11px] font-bold", on ? "bg-deep/15" : "bg-white/10")}>{t.units}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <Err list={errors.transport} />
+                  </div>
+                )}
+
+                {from && to && transport && (
+                  <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_auto]">
+                    <label className="block text-sm font-semibold">
+                      Date et heure de départ
+                      <input
+                        type="datetime-local"
+                        value={date}
+                        onChange={(e) => (setDate(e.target.value), setDirty(true))}
+                        className="mt-2 w-full rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 text-[15px] font-normal text-paper outline-none [color-scheme:dark] focus:border-lime"
+                      />
+                      <Err list={errors.date_depart} />
+                    </label>
+                    <div className="text-sm font-semibold">
+                      Nombre
+                      <div className="mt-2 flex w-fit items-center gap-1 rounded-2xl border border-white/15 bg-white/[0.07] p-1">
+                        <button type="button" aria-label="Diminuer" onClick={() => setCount((n) => Math.max(1, n - 1))} className="grid size-10 cursor-pointer place-items-center rounded-xl hover:bg-white/10">
+                          <Minus className="size-4" />
+                        </button>
+                        <span className="w-8 text-center text-lg">{count}</span>
+                        <button type="button" aria-label="Augmenter" onClick={() => setCount((n) => Math.min(transport.units, n + 1))} className="grid size-10 cursor-pointer place-items-center rounded-xl hover:bg-white/10">
+                          <Plus className="size-4" />
+                        </button>
+                      </div>
+                      <Err list={errors.nombre} />
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-6">
+                  {!auth.user ? (
+                    <Btn href={`${urls.login}?next=${encodeURIComponent(urls.mobilite)}`} variant="lime" size="lg" arrow className="w-full">
+                      Se connecter pour réserver
+                    </Btn>
+                  ) : (
+                    <Btn type="submit" variant="lime" size="lg" arrow={!busy} disabled={busy || !from || !to || !transport} className="w-full">
+                      {busy && <Loader2 className="size-4 animate-spin" />} Réserver la balade
+                    </Btn>
+                  )}
+                </div>
               </div>
-            ))}
+            </form>}
           </div>
 
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <Chips options={chips} value={type} onChange={setType} />
-            <label className="relative w-full sm:w-72">
-              <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted" />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Nom ou adresse…"
-                aria-label="Rechercher une station"
-                className="w-full rounded-full border border-line bg-paper py-2.5 pr-4 pl-11 text-sm outline-none transition focus:border-green focus:ring-4 focus:ring-green/10"
-              />
-            </label>
+          {/* Liste des stations */}
+          <h2 className="mt-10 mb-4 font-serif text-2xl">Les stations</h2>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {stations.map((s) => {
+              const role = s.id === fromId ? "from" : s.id === toId ? "to" : null;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => (admin ? router.visit(s.manage_url) : pick(s.id))}
+                  className={cn(
+                    "cursor-pointer rounded-[1.75rem] border bg-paper p-5 text-left transition hover:shadow-[0_18px_45px_#15362e17]",
+                    role === "from" ? "border-deep ring-2 ring-deep" : role === "to" ? "border-coral ring-2 ring-coral" : "border-line",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-serif text-2xl leading-tight font-medium">{s.name}</h3>
+                    {role && <Badge tone={role === "from" ? "ink" : "coral"}>{role === "from" ? "Départ" : "Arrivée"}</Badge>}
+                  </div>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
+                    <MapPin className="size-3.5 shrink-0" /> {s.address || "Adresse non renseignée"}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
+                    {s.transports.length === 0 && <span className="text-sm text-muted">Aucun transport pour le moment</span>}
+                    {s.transports.map((t) => {
+                      const Icon = STATION_ICONS[t.type] || Bike;
+                      return (
+                        <span key={t.id} className={cn("flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium", t.units > 0 ? "bg-mint text-green" : "bg-ink/5 text-muted")}>
+                          <Icon className="size-3.5" /> {t.units} {t.type_label.toLowerCase()}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
-          {shown.length === 0 ? (
-            <EmptyState icon={Search} title="Aucune station trouvée" text="Essayez un autre type de transport ou un autre mot.">
-              <Btn variant="ghost" onClick={() => (setType(""), setQuery(""))}>
-                Tout afficher
-              </Btn>
-            </EmptyState>
-          ) : (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              <AnimatePresence mode="popLayout">
-                {shown.map((s, i) => (
-                  <StationCard key={s.id} s={s} index={i} />
-                ))}
-              </AnimatePresence>
-            </div>
+          {/* Mes propositions */}
+          {proposals.length > 0 && (
+            <>
+              <h2 className="mt-10 mb-4 font-serif text-2xl">Mes propositions de transport</h2>
+              <Card className="divide-y divide-line/70">
+                {proposals.map((p) => {
+                  const Icon = STATION_ICONS[p.type] || Bike;
+                  return (
+                    <div key={p.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
+                      <span className="grid size-10 place-items-center rounded-xl bg-mint text-green">
+                        <Icon className="size-5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold">
+                          {p.units} × {p.type_label} · {p.station}
+                        </p>
+                        <p className="text-xs text-muted">Proposé {fmtRelative(p.date)}</p>
+                        {p.status === "refuse" && p.reason && <p className="mt-1 text-[13px] text-[#b4532f]">Motif : {p.reason}</p>}
+                      </div>
+                      <Badge tone={STATUS_TONE[p.status]} dot>
+                        {p.status_label}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </Card>
+            </>
           )}
         </>
       )}
