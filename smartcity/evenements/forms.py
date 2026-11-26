@@ -1,9 +1,10 @@
+import math
+
 from django import forms
 from django.utils import timezone
 
+from core.validators import validate_image_upload
 from .models import Evenement
-
-MAX_PHOTO = 8 * 1024 * 1024
 
 
 class EvenementForm(forms.ModelForm):
@@ -25,23 +26,52 @@ class EvenementForm(forms.ModelForm):
         d = self.cleaned_data["description"].strip()
         if len(d) < 10:
             raise forms.ValidationError("Décrivez l'événement en quelques mots (10 caractères minimum).")
+        if len(d) > 5000:
+            raise forms.ValidationError("La description ne peut pas dépasser 5 000 caractères.")
         return d
+
+    def clean_lieu(self):
+        lieu = self.cleaned_data["lieu"].strip()
+        if len(lieu) < 2:
+            raise forms.ValidationError("Le lieu doit faire au moins 2 caractères.")
+        return lieu
+
+    def clean_adresse(self):
+        adresse = self.cleaned_data["adresse"].strip()
+        if adresse and len(adresse) < 3:
+            raise forms.ValidationError("L'adresse doit faire au moins 3 caractères.")
+        return adresse
+
+    def clean_latitude(self):
+        latitude = self.cleaned_data.get("latitude")
+        if latitude is not None and not math.isfinite(latitude):
+            raise forms.ValidationError("La latitude doit être une valeur numérique valide.")
+        return latitude
+
+    def clean_longitude(self):
+        longitude = self.cleaned_data.get("longitude")
+        if longitude is not None and not math.isfinite(longitude):
+            raise forms.ValidationError("La longitude doit être une valeur numérique valide.")
+        return longitude
 
     def clean_date(self):
         d = self.cleaned_data["date"]
-        if not self.instance.pk and d and d < timezone.now():
+        if d and d < timezone.now():
             raise forms.ValidationError("La date doit être dans le futur.")
         return d
 
-    def clean_date_fin(self):
-        fin = self.cleaned_data.get("date_fin")
-        debut = self.cleaned_data.get("date")
+    def clean(self):
+        data = super().clean()
+        debut, fin = data.get("date"), data.get("date_fin")
         if fin and debut and fin <= debut:
-            raise forms.ValidationError("La date de fin doit être après le début.")
-        return fin
+            self.add_error("date_fin", "La date de fin doit être après le début.")
+        if (data.get("latitude") is None) != (data.get("longitude") is None):
+            message = "Indiquez les deux coordonnées ou retirez le point de la carte."
+            if data.get("latitude") is not None:
+                self.add_error("longitude", message)
+            else:
+                self.add_error("latitude", message)
+        return data
 
     def clean_image(self):
-        img = self.cleaned_data.get("image")
-        if img and getattr(img, "size", 0) > MAX_PHOTO:
-            raise forms.ValidationError("L'image est trop lourde (8 Mo maximum).")
-        return img
+        return validate_image_upload(self.cleaned_data.get("image"))

@@ -51,12 +51,17 @@ export default function EvenementForm({ form, categories, editing, current_image
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
   const [edited, setEdited] = useState({});
+  const [clientErrors, setClientErrors] = useState({});
   const fileInput = useRef(null);
 
   const errors = Object.fromEntries(Object.entries(serverErrors).map(([k, v]) => [k, edited[k] ? [] : v]));
-  const touch = (...names) => setEdited((e) => ({ ...e, ...Object.fromEntries(names.map((n) => [n, true])) }));
+  Object.entries(clientErrors).forEach(([name, list]) => { if (list.length) errors[name] = list; });
+  const touch = (...names) => {
+    setEdited((e) => ({ ...e, ...Object.fromEntries(names.map((n) => [n, true])) }));
+    setClientErrors((all) => Object.fromEntries(Object.entries(all).filter(([name]) => !names.includes(name))));
+  };
 
-  useEffect(() => { setEdited({}); }, [form]);
+  useEffect(() => { setEdited({}); setClientErrors({}); }, [form]);
 
   useEffect(() => {
     if (!image) return setPreview(null);
@@ -87,8 +92,23 @@ export default function EvenementForm({ form, categories, editing, current_image
 
   function submit(e) {
     e.preventDefault();
+    const invalid = {};
+    if (!categorie) invalid.categorie = ["Choisissez une catégorie."];
+    if (titre.trim().length < 4) invalid.titre = ["Le titre doit faire au moins 4 caractères."];
+    if (description.trim().length < 10) invalid.description = ["La description doit faire au moins 10 caractères."];
+    if (description.trim().length > 5000) invalid.description = ["La description ne peut pas dépasser 5 000 caractères."];
+    if (lieu.trim().length < 2) invalid.lieu = ["Le lieu doit faire au moins 2 caractères."];
+    if (!date || Number.isNaN(new Date(date).getTime()) || new Date(date) <= new Date()) invalid.date = ["La date doit être dans le futur."];
+    if (dateFin && (!date || new Date(dateFin) <= new Date(date))) invalid.date_fin = ["La date de fin doit être après le début."];
+    if (image && (!/\.(jpe?g|png|gif|bmp|webp)$/i.test(image.name) || image.size > 8 * 1024 * 1024)) {
+      invalid.image = ["Choisissez une image JPG, PNG, GIF, BMP ou WebP de 8 Mo maximum."];
+    }
+    if (Object.keys(invalid).length) {
+      setClientErrors(invalid);
+      return;
+    }
     const data = {
-      categorie, titre, description, lieu, adresse,
+      categorie, titre: titre.trim(), description: description.trim(), lieu: lieu.trim(), adresse: adresse.trim(),
       latitude: pos ? pos.lat.toFixed(6) : "",
       longitude: pos ? pos.lng.toFixed(6) : "",
       date, date_fin: dateFin,
@@ -121,7 +141,7 @@ export default function EvenementForm({ form, categories, editing, current_image
                   const I = EVENT_ICONS[c.value] || CalendarHeart;
                   const on = categorie === c.value;
                   return (
-                    <button key={c.value} type="button" onClick={() => (setCategorie(c.value), touch("categorie"))} className={cn("flex cursor-pointer items-center gap-2.5 rounded-2xl border-2 px-3 py-3 text-sm font-semibold transition", on ? "border-green bg-mint text-green" : "border-line bg-paper hover:border-green/40")}>
+                    <button key={c.value} type="button" onClick={() => (setCategorie(c.value), touch("categorie"))} className={cn("flex cursor-pointer items-center gap-2.5 rounded-2xl border-2 px-3 py-3 text-sm font-semibold transition", on ? "border-green bg-mint text-green" : errors.categorie?.length ? "border-coral/60 bg-paper" : "border-line bg-paper hover:border-green/40")}>
                       <I className={cn("size-5 shrink-0", on ? "text-green" : "text-muted")} />
                       {c.label}
                     </button>
@@ -141,7 +161,7 @@ export default function EvenementForm({ form, categories, editing, current_image
             {/* Description */}
             <label className="block text-sm font-semibold">
               Description <span className="text-coral">*</span>
-              <textarea rows={4} value={description} onChange={(e) => (setDescription(e.target.value), touch("description"))} placeholder="Programme, horaires, public visé…" className={cn(INPUT, "resize-y", errors.description?.length && "border-coral")} />
+              <textarea rows={4} value={description} onChange={(e) => (setDescription(e.target.value), touch("description"))} maxLength={5000} placeholder="Programme, horaires, public visé…" className={cn(INPUT, "resize-y", errors.description?.length && "border-coral")} />
               <Err list={errors.description} />
             </label>
 
@@ -171,7 +191,7 @@ export default function EvenementForm({ form, categories, editing, current_image
               </label>
               <label className="block text-sm font-semibold">
                 Date de fin <span className="text-xs font-normal text-muted">(facultatif)</span>
-                <input type="datetime-local" value={dateFin} onChange={(e) => (setDateFin(e.target.value), touch("date_fin"))} className={INPUT} />
+                <input type="datetime-local" value={dateFin} onChange={(e) => (setDateFin(e.target.value), touch("date_fin"))} className={cn(INPUT, errors.date_fin?.length && "border-coral")} />
                 <Err list={errors.date_fin} />
               </label>
             </div>

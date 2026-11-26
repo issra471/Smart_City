@@ -80,7 +80,7 @@ function Row({ a, rank, selected, onSelect, statuses, priorities, partners, resu
       </div>
       {a.urgent && a.status !== "rejete" && (
         <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3" onClick={(e) => e.stopPropagation()}>
-          <Quick label="Statut" value={a.status} options={statuses.filter((s) => s.value !== "rejete")} disabled={busy} onChange={(v) => update("statut", v)} />
+          {a.status !== "resolu" && <Quick label="Statut" value={a.status} options={statuses.filter((s) => !["rejete", "resolu"].includes(s.value))} disabled={busy} onChange={(v) => update("statut", v)} />}
           <Quick label="Priorité" value={a.priority} options={priorities} disabled={busy} onChange={(v) => update("priorite", v)} />
           <Quick label="Partenaire" value={a.partner_id} options={partners} disabled={busy} empty="— Aucun —" onChange={(v) => update("partenaire", v)} />
           {a.status === "resolu" && <Quick label="Résultat" value={a.result} options={results} disabled={busy} empty="— À indiquer —" onChange={(v) => update("resultat", v)} />}

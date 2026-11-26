@@ -1,12 +1,18 @@
 import { useMemo, useState } from "react";
 import { Head, Link, usePage } from "@inertiajs/react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight, Clock3, Plus, Search, ShieldCheck, ShoppingBasket, Tag } from "lucide-react";
+import { ArrowUpRight, Clock3, Package, Plus, Search, ShieldCheck, ShoppingBasket } from "lucide-react";
 import { appLayout } from "../../layouts/AppShell";
-import { Badge, Btn, Chips, EmptyState, MARKET_COLORS, MARKET_ICONS, PageHeader, STATUS_TONE, cn, fmtRelative } from "../../lib/ui";
+import { Badge, Btn, Chips, EmptyState, MARKET_ICONS, PageHeader, STATUS_TONE, cn, fmtRelative } from "../../lib/ui";
+
+function unitLabel(label, qty = 1) {
+  if (!label || label === "Kg") return label || "";
+  return qty > 1 ? `${label}s` : label;
+}
 
 function ProductCard({ p, index }) {
   const Icon = MARKET_ICONS[p.category] || ShoppingBasket;
+  const outOfStock = p.status === "disponible" && p.en_rupture;
   return (
     <motion.article
       layout
@@ -25,18 +31,31 @@ function ProductCard({ p, index }) {
           </div>
         )}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          <Badge tone={STATUS_TONE[p.status]} dot>{p.status_label}</Badge>
+          {outOfStock ? (
+            <Badge tone="coral" dot>Rupture de stock</Badge>
+          ) : (
+            <Badge tone={STATUS_TONE[p.status]} dot>{p.status_label}</Badge>
+          )}
           <Badge tone="muted">{p.category_label}</Badge>
           {p.mine && <Badge tone="lime">Mon annonce</Badge>}
         </div>
         <div className="absolute right-3 bottom-3 rounded-full bg-deep px-3.5 py-1.5 text-sm font-bold text-lime shadow-lg">
           {Number(p.price).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DT
+          {p.unite_label && <span className="ml-1 text-xs font-normal text-paper/75">/ {p.unite_label}</span>}
         </div>
       </div>
 
       <div className="flex flex-1 flex-col p-5">
         <Link href={p.url} className="font-serif text-2xl leading-tight font-medium hover:underline">{p.title}</Link>
         {p.description && <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted">{p.description}</p>}
+        <div className="mt-3 flex items-center gap-1.5 text-xs font-medium">
+          <Package className={cn("size-3.5", outOfStock ? "text-[#b4532f]" : "text-green")} />
+          {outOfStock ? (
+            <span className="text-[#b4532f]">Rupture de stock</span>
+          ) : (
+            <span className="text-ink/80">Stock : {p.quantite} {unitLabel(p.unite_label, p.quantite)}</span>
+          )}
+        </div>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-4">
           <span className="flex items-center gap-1 text-xs text-muted">
             <Clock3 className="size-3.5" /> {fmtRelative(p.date)}
@@ -58,21 +77,32 @@ export default function MarketplaceList({ items, categories, create_url, manage_
   const [mineOnly, setMineOnly] = useState(false);
   const [query, setQuery] = useState("");
 
+  const availableCount = useMemo(() => items.filter((p) => p.status === "disponible" && !p.en_rupture).length, [items]);
+  const ruptureCount = useMemo(() => items.filter((p) => p.status === "disponible" && p.en_rupture).length, [items]);
+  const soldCount = useMemo(() => items.filter((p) => p.status === "vendu").length, [items]);
+
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return items.filter(
-      (p) =>
-        (!status || p.status === status) &&
+    return items.filter((p) => {
+      const statusMatch =
+        !status ||
+        (status === "disponible" && p.status === "disponible" && !p.en_rupture) ||
+        (status === "rupture" && p.status === "disponible" && p.en_rupture) ||
+        (status === "vendu" && p.status === "vendu");
+      return (
+        statusMatch &&
         (!category || p.category === category) &&
         (!mineOnly || p.mine) &&
-        (!q || p.title.toLowerCase().includes(q) || (p.author || "").toLowerCase().includes(q)),
-    );
+        (!q || p.title.toLowerCase().includes(q) || (p.author || "").toLowerCase().includes(q))
+      );
+    });
   }, [items, status, category, mineOnly, query]);
 
   const statusChips = [
     { value: "", label: "Tous", count: items.length },
-    { value: "disponible", label: "Disponibles", count: items.filter((p) => p.status === "disponible").length },
-    { value: "vendu", label: "Vendus", count: items.filter((p) => p.status === "vendu").length },
+    { value: "disponible", label: "Disponibles", count: availableCount },
+    ...(ruptureCount > 0 ? [{ value: "rupture", label: "Rupture de stock", count: ruptureCount }] : []),
+    { value: "vendu", label: "Vendus", count: soldCount },
   ];
   const catChips = [{ value: "", label: "Toutes" }, ...categories.map((c) => ({ ...c, icon: MARKET_ICONS[c.value] }))];
   const mineCount = items.filter((p) => p.mine).length;
@@ -96,11 +126,11 @@ export default function MarketplaceList({ items, categories, create_url, manage_
       {/* Chiffres */}
       <div className="grain relative mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-[1.75rem] bg-deep text-paper">
         <button type="button" onClick={() => setStatus(status === "disponible" ? "" : "disponible")} className={cn("relative cursor-pointer px-5 py-4 text-left transition hover:bg-white/5", status === "disponible" && "bg-white/10")}>
-          <p className="font-serif text-4xl leading-none font-medium" style={{ color: "#c8f169" }}>{items.filter((p) => p.status === "disponible").length}</p>
+          <p className="font-serif text-4xl leading-none font-medium" style={{ color: "#c8f169" }}>{availableCount}</p>
           <p className="mt-1.5 text-sm text-paper/60">disponibles</p>
         </button>
         <button type="button" onClick={() => setStatus(status === "vendu" ? "" : "vendu")} className={cn("relative cursor-pointer px-5 py-4 text-left transition hover:bg-white/5", status === "vendu" && "bg-white/10")}>
-          <p className="font-serif text-4xl leading-none font-medium" style={{ color: "#9aa8a3" }}>{items.filter((p) => p.status === "vendu").length}</p>
+          <p className="font-serif text-4xl leading-none font-medium" style={{ color: "#9aa8a3" }}>{soldCount}</p>
           <p className="mt-1.5 text-sm text-paper/60">vendus</p>
         </button>
       </div>

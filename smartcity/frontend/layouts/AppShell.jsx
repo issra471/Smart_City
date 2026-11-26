@@ -20,6 +20,7 @@ import {
   PawPrint,
   ShieldCheck,
   ShoppingBasket,
+  ShoppingCart,
   TriangleAlert,
   UserRound,
   Users,
@@ -67,13 +68,14 @@ function useNav(admin) {
         { label: "Signalements", href: urls.infrastructures, icon: TriangleAlert },
         { label: "Événements", href: urls.evenements, icon: CalendarHeart },
         { label: "Animaux", href: urls.animaux, icon: PawPrint },
-        { label: "Marché local", href: urls.marketplace, icon: ShoppingBasket },
+        { label: "Marché local", href: urls.marketplace, icon: ShoppingBasket, not: urls.marketplace_panier },
       ],
     },
     {
       title: "Mon compte",
       items: [
         ...(auth.user?.is_staff ? [] : [{ label: "Mes réservations", href: urls.reservations, icon: CalendarCheck }]),
+        ...(auth.user?.is_staff ? [] : [{ label: "Mon panier", href: urls.marketplace_panier, icon: ShoppingCart, badge: auth.user?.panier_count || 0 }]),
         { label: "Mon profil", href: urls.profile, icon: UserRound, also: urls.password_change },
         ...(auth.user?.is_staff ? [{ label: "Administration", href: urls.admin_dashboard, icon: ShieldCheck }] : []),
         { label: "La ville en 3D", href: urls.home, icon: Building2, exact: true },
@@ -118,7 +120,12 @@ function NavContent({ admin, onNavigate }) {
                   <>
                     {on && <motion.span layoutId={admin ? "nav-pill-admin" : "nav-pill"} className="absolute inset-0 rounded-full bg-lime" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
                     <it.icon className="relative size-[18px] shrink-0" />
-                    <span className="relative">{it.label}</span>
+                    <span className="relative flex-1">{it.label}</span>
+                    {it.badge > 0 && (
+                      <span className={cn("relative rounded-full px-2 py-0.5 text-[11px] font-bold", on ? "bg-deep text-lime" : "bg-lime text-deep")}>
+                        {it.badge}
+                      </span>
+                    )}
                   </>
                 );
                 return (

@@ -14,19 +14,22 @@ function Err({ list }) {
   ));
 }
 
-export default function MarketplaceForm({ form, categories, editing, current_image, action, cancel_url }) {
+export default function MarketplaceForm({ form, categories, unites, editing, current_image, action, cancel_url }) {
   const init = Object.fromEntries(form.fields.map((f) => [f.name, f.value]));
   const serverErrors = Object.fromEntries(form.fields.map((f) => [f.name, f.errors]));
 
   const [categorie, setCategorie] = useState(init.categorie || "");
   const [titre, setTitre] = useState(init.titre || "");
   const [description, setDescription] = useState(init.description || "");
-  const [prix, setPrix] = useState(init.prix || "");
-  const [telephone, setTelephone] = useState(init.telephone || "");
+  const [prix, setPrix] = useState(init.prix ?? "");
+  const [quantite, setQuantite] = useState(init.quantite ?? "1");
+  const [unite, setUnite] = useState(init.unite || "piece");
+  const [telephone, setTelephone] = useState(init.telephone ?? "");
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
   const [edited, setEdited] = useState({});
+  const [charHints, setCharHints] = useState({});
   const fileInput = useRef(null);
 
   const errors = Object.fromEntries(Object.entries(serverErrors).map(([k, v]) => [k, edited[k] ? [] : v]));
@@ -41,14 +44,71 @@ export default function MarketplaceForm({ form, categories, editing, current_ima
     return () => URL.revokeObjectURL(u);
   }, [image]);
 
+  // Contrôle de saisie téléphone : 8 chiffres uniquement, pas de lettres
+  function handleTelephone(val) {
+    const digitsOnly = val.replace(/[^0-9]/g, "");
+    const hadInvalid = digitsOnly !== val;
+    const trimmed = digitsOnly.slice(0, 8);
+    setTelephone(trimmed);
+    setCharHints((h) => ({
+      ...h,
+      telephone: hadInvalid ? "Seuls les chiffres sont autorisés (pas de lettres ni de caractères spéciaux)." : "",
+    }));
+    touch("telephone");
+  }
+
+  // Contrôle de saisie prix : chiffres uniquement (et un point décimal optionnel, max 2 décimales)
+  function handlePrix(val) {
+    const normalized = val.replace(",", ".");
+    let cleaned = normalized.replace(/[^0-9.]/g, "");
+    const hadInvalid = cleaned !== normalized;
+    const parts = cleaned.split(".");
+    if (parts.length > 2) {
+      cleaned = `${parts[0]}.${parts.slice(1).join("")}`;
+    }
+    const finalParts = cleaned.split(".");
+    if (finalParts.length === 2 && finalParts[1].length > 2) {
+      cleaned = `${finalParts[0]}.${finalParts[1].slice(0, 2)}`;
+    }
+    setPrix(cleaned);
+    setCharHints((h) => ({
+      ...h,
+      prix: hadInvalid ? "Le prix doit être composé uniquement de chiffres." : "",
+    }));
+    touch("prix");
+  }
+
+  // Contrôle de saisie quantité : chiffres uniquement
+  function handleQuantite(val) {
+    const cleaned = val.replace(/[^0-9]/g, "");
+    const hadInvalid = cleaned !== val;
+    setQuantite(cleaned);
+    setCharHints((h) => ({
+      ...h,
+      quantite: hadInvalid ? "La quantité doit être composée uniquement de chiffres." : "",
+    }));
+    touch("quantite");
+  }
+
   function submit(e) {
     e.preventDefault();
-    const data = { categorie, titre, description, prix, telephone };
+    setCharHints({});
+    const data = { categorie, titre, description, prix, quantite, unite, telephone };
     if (image) data.image = image;
-    router.post(action, data, { forceFormData: true, preserveScroll: true, preserveState: true, onStart: () => setBusy(true), onFinish: () => setBusy(false) });
+    router.post(action, data, {
+      forceFormData: true,
+      preserveScroll: true,
+      preserveState: true,
+      onStart: () => setBusy(true),
+      onFinish: () => setBusy(false),
+    });
   }
 
   const CatIcon = MARKET_ICONS[categorie] || ShoppingBasket;
+
+  const prixErrors = errors.prix?.length ? errors.prix : charHints.prix ? [charHints.prix] : [];
+  const telErrors = errors.telephone?.length ? errors.telephone : charHints.telephone ? [charHints.telephone] : [];
+  const qteErrors = errors.quantite?.length ? errors.quantite : charHints.quantite ? [charHints.quantite] : [];
 
   return (
     <>
@@ -92,7 +152,7 @@ export default function MarketplaceForm({ form, categories, editing, current_ima
             {/* Description */}
             <label className="block text-sm font-semibold">
               Description <span className="text-coral">*</span>
-              <textarea rows={4} value={description} onChange={(e) => (setDescription(e.target.value), touch("description"))} placeholder="Origine, quantité, qualité…" className={cn(INPUT, "resize-y", errors.description?.length && "border-coral")} />
+              <textarea rows={4} value={description} onChange={(e) => (setDescription(e.target.value), touch("description"))} placeholder="Origine, qualité…" className={cn(INPUT, "resize-y", errors.description?.length && "border-coral")} />
               <Err list={errors.description} />
             </label>
 
@@ -100,13 +160,57 @@ export default function MarketplaceForm({ form, categories, editing, current_ima
             <div className="grid gap-5 sm:grid-cols-2">
               <label className="block text-sm font-semibold">
                 Prix (DT) <span className="text-coral">*</span>
-                <input type="number" step="0.01" min="0" value={prix} onChange={(e) => (setPrix(e.target.value), touch("prix"))} placeholder="12.50" className={cn(INPUT, errors.prix?.length && "border-coral")} />
-                <Err list={errors.prix} />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={prix}
+                  onChange={(e) => handlePrix(e.target.value)}
+                  placeholder="12.50"
+                  className={cn(INPUT, prixErrors.length && "border-coral")}
+                />
+                <Err list={prixErrors} />
               </label>
               <label className="block text-sm font-semibold">
-                Téléphone <span className="text-xs font-normal text-muted">(facultatif)</span>
-                <input type="tel" value={telephone} onChange={(e) => (setTelephone(e.target.value), touch("telephone"))} maxLength={20} placeholder="Ex. 55 123 456" className={INPUT} />
-                <Err list={errors.telephone} />
+                Téléphone <span className="text-xs font-normal text-muted">(facultatif, 8 chiffres)</span>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={telephone}
+                  onChange={(e) => handleTelephone(e.target.value)}
+                  maxLength={8}
+                  placeholder="Ex. 55123456"
+                  className={cn(INPUT, telErrors.length && "border-coral")}
+                />
+                <Err list={telErrors} />
+              </label>
+            </div>
+
+            {/* Quantité + Unité */}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <label className="block text-sm font-semibold">
+                Quantité disponible <span className="text-coral">*</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={quantite}
+                  onChange={(e) => handleQuantite(e.target.value)}
+                  placeholder="Ex. 10"
+                  className={cn(INPUT, qteErrors.length && "border-coral")}
+                />
+                <Err list={qteErrors} />
+              </label>
+              <label className="block text-sm font-semibold">
+                Unité <span className="text-coral">*</span>
+                <select
+                  value={unite}
+                  onChange={(e) => (setUnite(e.target.value), touch("unite"))}
+                  className={cn(INPUT, "cursor-pointer", errors.unite?.length && "border-coral")}
+                >
+                  {(unites || []).map((u) => (
+                    <option key={u.value} value={u.value}>{u.label}</option>
+                  ))}
+                </select>
+                <Err list={errors.unite} />
               </label>
             </div>
 
@@ -160,14 +264,14 @@ export default function MarketplaceForm({ form, categories, editing, current_ima
               Vendez <em className="text-lime">local</em>
             </h2>
             <ul className="mt-6 flex flex-col gap-3">
-              {["Un titre clair et précis", "Une description honnête", "Un prix juste", "Une belle photo"].map((tip) => (
+              {["Un titre clair et précis", "Une description honnête", "Quantité et unité précisées", "Un prix juste et une belle photo"].map((tip) => (
                 <li key={tip} className="flex items-center gap-3 rounded-2xl bg-white/[0.07] px-4 py-3 text-sm text-paper/85">
                   <ShoppingBasket className="size-4 shrink-0 text-lime" /> {tip}
                 </li>
               ))}
             </ul>
             <p className="mt-6 border-t border-white/10 pt-5 text-sm text-paper/70">
-              {editing ? "Modifiez votre annonce tant qu'elle n'est pas retirée." : "Les habitants pourront contacter le vendeur directement."}
+              {editing ? "Modifiez votre annonce tant qu'elle n'est pas retirée." : "Les habitants pourront commander directement ou contacter le vendeur."}
             </p>
           </div>
         </aside>

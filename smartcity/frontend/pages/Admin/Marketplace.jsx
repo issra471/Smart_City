@@ -15,7 +15,7 @@ function Row({ p }) {
   function doRetire(e) {
     e.preventDefault();
     if (motif.trim().length < 3) return;
-    router.post(`/marketplace/gestion/${p.id}/retirer/`, { motif }, { preserveScroll: true, onStart: () => setBusy(true), onFinish: () => setBusy(false) });
+    router.post(`/marketplace/gestion/${p.id}/retirer/`, { motif }, { forceFormData: true, preserveScroll: true, onStart: () => setBusy(true), onFinish: () => setBusy(false) });
   }
 
   return (
@@ -32,10 +32,19 @@ function Row({ p }) {
         </div>
       </td>
       <td className="hidden px-4 py-3 sm:table-cell">
-        <Badge tone={STATUS_TONE[p.status]} dot>{p.status_label}</Badge>
+        {p.status === "disponible" && p.en_rupture ? (
+          <Badge tone="coral" dot>Rupture de stock</Badge>
+        ) : (
+          <Badge tone={STATUS_TONE[p.status]} dot>{p.status_label}</Badge>
+        )}
       </td>
       <td className="hidden px-4 py-3 md:table-cell"><span className="text-sm text-muted">{p.category_label}</span></td>
-      <td className="hidden px-4 py-3 md:table-cell"><span className="text-sm font-semibold">{Number(p.price).toLocaleString("fr-FR")} DT</span></td>
+      <td className="hidden px-4 py-3 md:table-cell">
+        <span className="text-sm font-semibold">{Number(p.price).toLocaleString("fr-FR")} DT</span>
+        {p.quantite != null && (
+          <span className="block text-xs text-muted">{p.quantite} {p.unite_label}</span>
+        )}
+      </td>
       <td className="hidden px-4 py-3 lg:table-cell"><span className="text-xs text-muted">{fmtRelative(p.date)}</span></td>
       <td className="px-4 py-3 text-right">
         <div className="flex items-center justify-end gap-2">

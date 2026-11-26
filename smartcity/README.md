@@ -3,6 +3,8 @@
 ```bash
 python -m venv .venv && source .venv/bin/activate   # Windows : .venv\Scripts\activate
 pip install -r requirements.txt
+npm install
+npm run build
 python manage.py makemigrations accounts mobilite infrastructures evenements animaux marketplace
 python manage.py migrate
 python manage.py createsuperuser

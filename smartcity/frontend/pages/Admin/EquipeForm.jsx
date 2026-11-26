@@ -25,11 +25,22 @@ export default function EquipeForm({ form, editing, categories, selected, list_u
   const [telephone, setTelephone] = useState(f.telephone.value);
   const [cats, setCats] = useState(selected);
   const [busy, setBusy] = useState(false);
+  const [clientErrors, setClientErrors] = useState({});
+  const errors = Object.fromEntries(form.fields.map((field) => [field.name, [...field.errors, ...(clientErrors[field.name] || [])]]));
+  const clearError = (name) => setClientErrors((all) => Object.fromEntries(Object.entries(all).filter(([field]) => field !== name)));
   const toggle = (v) => setCats((c) => (c.includes(v) ? c.filter((x) => x !== v) : [...c, v]));
 
   function submit(e) {
     e.preventDefault();
-    router.post(action, { nom, responsable, telephone, categories: cats.join(",") }, { forceFormData: true, preserveScroll: true, preserveState: true, onStart: () => setBusy(true), onFinish: () => setBusy(false) });
+    const invalid = {};
+    if (nom.trim().length < 2) invalid.nom = ["Le nom doit faire au moins 2 caractères."];
+    if (responsable.trim() && responsable.trim().length < 2) invalid.responsable = ["Le nom du responsable doit faire au moins 2 caractères."];
+    if (telephone.trim() && !/^[0-9]{8}$/.test(telephone.trim())) invalid.telephone = ["Le numéro de téléphone doit contenir exactement 8 chiffres."];
+    if (Object.keys(invalid).length) {
+      setClientErrors(invalid);
+      return;
+    }
+    router.post(action, { nom: nom.trim(), responsable: responsable.trim(), telephone: telephone.trim(), categories: cats.join(",") }, { forceFormData: true, preserveScroll: true, preserveState: true, onStart: () => setBusy(true), onFinish: () => setBusy(false) });
   }
 
   return (
@@ -46,19 +57,19 @@ export default function EquipeForm({ form, editing, categories, selected, list_u
 
           <label className="mt-7 block text-sm font-semibold">
             {T.name} <span className="text-coral">*</span>
-            <input value={nom} onChange={(e) => setNom(e.target.value)} maxLength={100} placeholder={T.name_placeholder} className={cn(INPUT, f.nom.errors.length > 0 && "border-coral")} />
-            <Err list={f.nom.errors} />
+            <input value={nom} onChange={(e) => (setNom(e.target.value), clearError("nom"))} maxLength={100} placeholder={T.name_placeholder} className={cn(INPUT, errors.nom.length > 0 && "border-coral")} />
+            <Err list={errors.nom} />
           </label>
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
             <label className="block text-sm font-semibold">
               Responsable
-              <input value={responsable} onChange={(e) => setResponsable(e.target.value)} maxLength={100} placeholder="Prénom Nom" className={INPUT} />
-              <Err list={f.responsable.errors} />
+              <input value={responsable} onChange={(e) => (setResponsable(e.target.value), clearError("responsable"))} maxLength={100} placeholder="Prénom Nom" className={cn(INPUT, errors.responsable.length > 0 && "border-coral")} />
+              <Err list={errors.responsable} />
             </label>
             <label className="block text-sm font-semibold">
               Téléphone
-              <input value={telephone} onChange={(e) => setTelephone(e.target.value)} maxLength={30} type="tel" placeholder="71 000 000" className={INPUT} />
-              <Err list={f.telephone.errors} />
+              <input value={telephone} onChange={(e) => (setTelephone(e.target.value), clearError("telephone"))} maxLength={8} type="tel" inputMode="numeric" placeholder="71000000" className={cn(INPUT, errors.telephone.length > 0 && "border-coral")} />
+              <Err list={errors.telephone} />
             </label>
           </div>
 
@@ -75,7 +86,7 @@ export default function EquipeForm({ form, editing, categories, selected, list_u
                   role="checkbox"
                   aria-checked={on}
                   onClick={() => toggle(c.value)}
-                  className={cn("flex cursor-pointer items-center gap-2.5 rounded-2xl border-2 px-3 py-3 text-left text-sm font-semibold transition", on ? "border-green bg-mint text-green" : "border-line bg-paper hover:border-green/40")}
+                  className={cn("flex cursor-pointer items-center gap-2.5 rounded-2xl border-2 px-3 py-3 text-left text-sm font-semibold transition", on ? "border-green bg-mint text-green" : errors.categories.length ? "border-coral/60 bg-paper" : "border-line bg-paper hover:border-green/40")}
                 >
                   <span className={cn("grid size-8 shrink-0 place-items-center rounded-xl", on ? "bg-green text-paper" : "bg-pale text-green")}>{on ? <Check className="size-4" /> : <I className="size-4" />}</span>
                   {c.label}
@@ -83,7 +94,7 @@ export default function EquipeForm({ form, editing, categories, selected, list_u
               );
             })}
           </div>
-          <Err list={f.categories.errors} />
+          <Err list={errors.categories} />
 
           <div className="mt-7 flex flex-wrap justify-end gap-3">
             <Btn href={list_url} variant="ghost">

@@ -15,6 +15,10 @@ def _auth(request):
     if not user.is_authenticated:
         return {"user": None}
     name = user.get_full_name() or user.get_username()
+    panier_count = 0
+    if not user.is_staff:
+        from marketplace.models import PanierItem
+        panier_count = PanierItem.objects.filter(panier__citoyen=user).count()
     return {
         "user": {
             "username": user.get_username(),
@@ -23,6 +27,7 @@ def _auth(request):
             "initials": "".join(part[0] for part in name.split()[:2]).upper() or "?",
             "is_staff": user.is_staff,
             "is_superuser": user.is_superuser,
+            "panier_count": panier_count,
         }
     }
 
@@ -54,6 +59,7 @@ _ROUTES = {
     "admin_partners": "animaux:partenaires",
     "marketplace": "marketplace:list",
     "marketplace_create": "marketplace:create",
+    "marketplace_panier": "marketplace:panier",
     "admin_dashboard": "accounts:admin_dashboard",
     "admin_users": "accounts:admin_users",
     "admin_modules": "accounts:admin_modules",

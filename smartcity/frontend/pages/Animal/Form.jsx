@@ -49,7 +49,7 @@ function Err({ list }) {
   ));
 }
 
-function Tile({ on, onClick, icon: I, label, hint, tone = "green" }) {
+function Tile({ on, onClick, icon: I, label, hint, tone = "green", invalid = false }) {
   const urgent = tone === "coral";
   return (
     <button
@@ -59,7 +59,7 @@ function Tile({ on, onClick, icon: I, label, hint, tone = "green" }) {
       onClick={onClick}
       className={cn(
         "flex cursor-pointer flex-col items-center gap-2.5 rounded-[1.5rem] border-2 px-3 py-5 text-center font-semibold transition",
-        on ? (urgent ? "border-coral bg-coral/10 text-[#b4532f]" : "border-green bg-mint text-green") : "border-line bg-paper hover:border-green/40",
+        on ? (urgent ? "border-coral bg-coral/10 text-[#b4532f]" : "border-green bg-mint text-green") : invalid ? "border-coral/60 bg-paper" : "border-line bg-paper hover:border-green/40",
       )}
     >
       <span className={cn("grid size-12 place-items-center rounded-2xl transition", on ? (urgent ? "bg-coral text-paper" : "bg-green text-paper") : urgent ? "bg-coral/10 text-[#b4532f]" : "bg-pale text-green")}>
@@ -90,15 +90,21 @@ export default function AnimalForm({ form, cases, animals, nearby, editing, curr
   const [ignoreNearby, setIgnoreNearby] = useState(editing);
   const [busy, setBusy] = useState(false);
   const [edited, setEdited] = useState({});
+  const [clientErrors, setClientErrors] = useState({});
   const [localError, setLocalError] = useState("");
   const fileInput = useRef(null);
 
   const urgent = cases.find((c) => c.value === cas)?.urgent ?? false;
   const errors = Object.fromEntries(Object.entries(serverErrors).map(([k, v]) => [k, edited[k] ? [] : v]));
-  const touch = (...names) => setEdited((e) => ({ ...e, ...Object.fromEntries(names.map((n) => [n, true])) }));
+  Object.entries(clientErrors).forEach(([name, list]) => { if (list.length) errors[name] = list; });
+  const touch = (...names) => {
+    setEdited((e) => ({ ...e, ...Object.fromEntries(names.map((n) => [n, true])) }));
+    setClientErrors((all) => Object.fromEntries(Object.entries(all).filter(([name]) => !names.includes(name))));
+  };
 
   useEffect(() => {
     setEdited({});
+    setClientErrors({});
     const i = STEPS.findIndex((s) => s.fields.some((f) => serverErrors[f]?.length));
     if (i >= 0) setStep(i);
   }, [form]);
@@ -154,7 +160,23 @@ export default function AnimalForm({ form, cases, animals, nearby, editing, curr
   function submit(e) {
     e.preventDefault();
     if (step < STEPS.length - 1) return next();
-    const data = { cas, animal, espece, description, nombre, vu_le: vuLe, lieu, latitude: pos ? pos.lat.toFixed(6) : "", longitude: pos ? pos.lng.toFixed(6) : "" };
+    const invalid = {};
+    const count = Number(nombre);
+    if (!Number.isInteger(count) || count < 1 || count > 200) invalid.nombre = ["Entre 1 et 200 animaux."];
+    const seenAt = vuLe ? new Date(vuLe) : null;
+    if (!seenAt || Number.isNaN(seenAt.getTime()) || seenAt > new Date() || seenAt < new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) {
+      invalid.vu_le = ["La date ne peut pas être future et doit dater de moins de 30 jours."];
+    }
+    if (urgent && description.trim().length < 10) invalid.description = ["Décrivez la situation en 10 caractères minimum."];
+    if (espece.trim() && espece.trim().length < 2) invalid.espece = ["La description courte doit faire au moins 2 caractères."];
+    if (photo && (!/\.(jpe?g|png|gif|bmp|webp)$/i.test(photo.name) || photo.size > 8 * 1024 * 1024)) {
+      invalid.photo = ["Choisissez une image JPG, PNG, GIF, BMP ou WebP de 8 Mo maximum."];
+    }
+    if (Object.keys(invalid).length) {
+      setClientErrors(invalid);
+      return;
+    }
+    const data = { cas, animal, espece: espece.trim(), description: description.trim(), nombre: count, vu_le: vuLe, lieu: lieu.trim(), latitude: pos ? pos.lat.toFixed(6) : "", longitude: pos ? pos.lng.toFixed(6) : "" };
     if (photo) data.photo = photo;
     router.post(action, data, { forceFormData: true, preserveScroll: true, preserveState: true, onStart: () => setBusy(true), onFinish: () => setBusy(false) });
   }
@@ -218,6 +240,7 @@ export default function AnimalForm({ form, cases, animals, nearby, editing, curr
                   label={c.label}
                   hint={c.urgent ? "intervention" : "juste partager"}
                   tone={c.urgent ? "coral" : "green"}
+                  invalid={errors.cas?.length > 0}
                 />
               ))}
             </div>
@@ -226,7 +249,7 @@ export default function AnimalForm({ form, cases, animals, nearby, editing, curr
             <h2 className="mt-8 font-serif text-2xl">Quel animal ?</h2>
             <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-6">
               {animals.map((a) => (
-                <Tile key={a.value} on={animal === a.value} onClick={() => (setAnimal(a.value), touch("animal"), setLocalError(""))} icon={ANIMAL_ICONS[a.value] || PawPrint} label={a.label} />
+                <Tile key={a.value} on={animal === a.value} onClick={() => (setAnimal(a.value), touch("animal"), setLocalError(""))} icon={ANIMAL_ICONS[a.value] || PawPrint} label={a.label} invalid={errors.animal?.length > 0} />
               ))}
             </div>
             <Err list={errors.animal} />
@@ -269,7 +292,7 @@ export default function AnimalForm({ form, cases, animals, nearby, editing, curr
               <label className="mt-5 block text-sm font-semibold">
                 Adresse ou repère
                 <span className="relative block">
-                  <input value={lieu} onChange={(e) => (setLieu(e.target.value), setLieuTouched(true), touch("lieu"))} maxLength={200} placeholder={pos ? "Recherche de l'adresse…" : "Rue, parc, plage…"} className={cn(INPUT, "pr-10")} />
+                  <input value={lieu} onChange={(e) => (setLieu(e.target.value), setLieuTouched(true), touch("lieu"))} maxLength={200} placeholder={pos ? "Recherche de l'adresse…" : "Rue, parc, plage…"} className={cn(INPUT, "pr-10", errors.lieu?.length && "border-coral")} />
                   {geocoding && <LoaderCircle className="absolute top-1/2 right-4 mt-1 size-4 -translate-y-1/2 animate-spin text-muted" />}
                 </span>
                 <span className="mt-1.5 block text-xs font-normal text-muted">
@@ -331,7 +354,7 @@ export default function AnimalForm({ form, cases, animals, nearby, editing, curr
               <h2 className="font-serif text-2xl">{urgent ? "Décrivez la situation" : "Racontez votre observation"}</h2>
               <label className="mt-5 block text-sm font-semibold">
                 Espèce ou description courte
-                <input value={espece} onChange={(e) => (setEspece(e.target.value), touch("espece"))} maxLength={100} placeholder={urgent ? "Ex. Chat roux blessé" : "Ex. Flamants roses, hérisson…"} className={INPUT} />
+                <input value={espece} onChange={(e) => (setEspece(e.target.value), touch("espece"))} maxLength={100} placeholder={urgent ? "Ex. Chat roux blessé" : "Ex. Flamants roses, hérisson…"} className={cn(INPUT, errors.espece?.length && "border-coral")} />
                 <span className="mt-1.5 block text-xs font-normal text-muted">Facultatif : si vous ne savez pas, laissez vide.</span>
                 <Err list={errors.espece} />
               </label>
@@ -349,7 +372,7 @@ export default function AnimalForm({ form, cases, animals, nearby, editing, curr
               <div className="mt-5 grid gap-5 sm:grid-cols-2">
                 <div className="text-sm font-semibold">
                   Nombre d'animaux
-                  <div className="mt-2 flex w-fit items-center gap-1 rounded-2xl border border-line bg-paper p-1">
+                  <div className={cn("mt-2 flex w-fit items-center gap-1 rounded-2xl border bg-paper p-1", errors.nombre?.length ? "border-coral" : "border-line")}>
                     <button type="button" aria-label="Moins" onClick={() => (setNombre((n) => Math.max(1, n - 1)), touch("nombre"))} className="grid size-10 cursor-pointer place-items-center rounded-xl hover:bg-mint">
                       <Minus className="size-4" />
                     </button>
@@ -371,7 +394,7 @@ export default function AnimalForm({ form, cases, animals, nearby, editing, curr
                 <p className="text-sm font-semibold">Photo {editing && current_photo ? "(remplacer)" : "(conseillée)"}</p>
                 <input ref={fileInput} type="file" accept="image/*" className="sr-only" onChange={(e) => (setPhoto(e.target.files[0] || null), touch("photo"))} />
                 {preview || current_photo ? (
-                  <div className="relative mt-2 overflow-hidden rounded-2xl border border-line">
+                  <div className={cn("relative mt-2 overflow-hidden rounded-2xl border", errors.photo?.length ? "border-coral" : "border-line")}>
                     <img src={preview || current_photo} alt="" className="max-h-72 w-full object-cover" />
                     <div className="absolute top-3 right-3 flex gap-2">
                       <button type="button" onClick={() => fileInput.current.click()} className="cursor-pointer rounded-full bg-deep/80 px-3 py-1.5 text-xs font-semibold text-paper backdrop-blur hover:bg-deep">
@@ -385,7 +408,7 @@ export default function AnimalForm({ form, cases, animals, nearby, editing, curr
                     </div>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => fileInput.current.click()} className="mt-2 flex w-full cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-line bg-pale/60 px-4 py-8 text-center transition hover:border-green hover:bg-mint/40">
+                  <button type="button" onClick={() => fileInput.current.click()} className={cn("mt-2 flex w-full cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed bg-pale/60 px-4 py-8 text-center transition hover:border-green hover:bg-mint/40", errors.photo?.length ? "border-coral" : "border-line")}>
                     <span className="grid size-11 place-items-center rounded-full bg-paper text-green shadow-sm">
                       <ImagePlus className="size-5" />
                     </span>

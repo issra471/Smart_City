@@ -1,18 +1,182 @@
 import { useState } from "react";
 import { Head, Link, router, usePage } from "@inertiajs/react";
-import { motion } from "motion/react";
-import { ArrowLeft, CheckCircle2, Clock3, Edit3, Package, Phone, ShoppingBasket, Tag, Trash2, Undo2, User } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { ArrowLeft, CheckCircle2, Clock3, Edit3, Minus, Package, Phone, Plus, ShoppingCart, Tag, Trash2, Undo2, User, X } from "lucide-react";
 import { appLayout } from "../../layouts/AppShell";
-import { Badge, Btn, Card, MARKET_ICONS, STATUS_TONE, cn, fmtDate, fmtRelative } from "../../lib/ui";
+import { Badge, Btn, Card, STATUS_TONE, fmtDate, fmtRelative } from "../../lib/ui";
 
-export default function MarketplaceDetail({ product: p, can_edit, can_delete, can_contact, edit_url, delete_url, mark_sold_url, list_url }) {
-  const { auth } = usePage().props;
-  const [confirmDel, setConfirmDel] = useState(false);
+function unitLabel(label, qty = 1) {
+  if (!label || label === "Kg") return label || "";
+  return qty > 1 ? `${label}s` : label;
+}
+
+function AddToCartModal({ product: p, inCartQty, addToCartUrl, panierUrl, onClose }) {
+  const maxAddable = Math.max(0, p.quantite - inCartQty);
+  const [qte, setQte] = useState(maxAddable > 0 ? "1" : "0");
   const [busy, setBusy] = useState(false);
 
-  const Icon = MARKET_ICONS[p.category] || ShoppingBasket;
+  const numericQte = Math.max(1, Math.min(maxAddable, parseInt(qte || "1", 10) || 1));
+
+  function decrement() {
+    setQte(String(Math.max(1, numericQte - 1)));
+  }
+
+  function increment() {
+    setQte(String(Math.min(maxAddable, numericQte + 1)));
+  }
+
+  function handleQteInput(val) {
+    const cleaned = val.replace(/[^0-9]/g, "");
+    if (!cleaned) {
+      setQte("");
+      return;
+    }
+    const parsed = parseInt(cleaned, 10);
+    setQte(String(Math.min(maxAddable, Math.max(1, parsed))));
+  }
+
+  function submit() {
+    if (maxAddable <= 0) return;
+    router.post(
+      addToCartUrl,
+      { quantite: String(numericQte) },
+      {
+        forceFormData: true,
+        preserveScroll: true,
+        onStart: () => setBusy(true),
+        onFinish: () => {
+          setBusy(false);
+          onClose();
+        },
+      },
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-deep/60 p-4 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ duration: 0.25 }}
+        className="w-full max-w-sm rounded-[1.75rem] bg-paper p-7 shadow-2xl"
+      >
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.14em] text-green uppercase">Ajouter au panier</p>
+            <h2 className="mt-1 font-serif text-2xl font-medium leading-tight">{p.title}</h2>
+          </div>
+          <button type="button" aria-label="Fermer" onClick={onClose} className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-full bg-ink/5 hover:bg-ink/10">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="mb-5 rounded-2xl bg-pale/60 px-5 py-4">
+          <p className="text-xs text-muted">Prix unitaire</p>
+          <p className="font-serif text-3xl font-medium text-green">
+            {Number(p.price).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-lg">DT</span>{" "}
+            <span className="text-sm font-normal text-muted">/ {p.unite_label}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Stock disponible : <span className="font-semibold text-ink">{p.quantite} {unitLabel(p.unite_label, p.quantite)}</span>
+          </p>
+          {inCartQty > 0 && (
+            <p className="mt-1 text-xs font-medium text-green">
+              Déjà dans votre panier : {inCartQty} {unitLabel(p.unite_label, inCartQty)}
+            </p>
+          )}
+        </div>
+
+        {maxAddable <= 0 ? (
+          <div className="flex flex-col gap-3">
+            <p className="rounded-2xl border border-line bg-pale px-4 py-3 text-center text-sm text-ink">
+              Vous avez déjà ajouté toute la quantité disponible dans votre panier.
+            </p>
+            <Btn href={panierUrl} icon={ShoppingCart} size="lg" className="w-full">
+              Voir mon panier
+            </Btn>
+          </div>
+        ) : (
+          <>
+            <div className="mb-6">
+              <p className="mb-3 text-sm font-semibold">Quantité souhaitée</p>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  aria-label="Réduire la quantité"
+                  onClick={decrement}
+                  disabled={numericQte <= 1}
+                  className="grid size-11 cursor-pointer place-items-center rounded-full border border-line bg-paper transition hover:bg-mint disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Minus className="size-4" />
+                </button>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  aria-label="Quantité"
+                  value={qte}
+                  onChange={(e) => handleQteInput(e.target.value)}
+                  onBlur={() => !qte && setQte("1")}
+                  className="w-20 rounded-2xl border border-line bg-paper py-2 text-center font-serif text-2xl font-medium text-ink outline-none focus:border-green"
+                />
+                <button
+                  type="button"
+                  aria-label="Augmenter la quantité"
+                  onClick={increment}
+                  disabled={numericQte >= maxAddable}
+                  className="grid size-11 cursor-pointer place-items-center rounded-full border border-line bg-paper transition hover:bg-mint disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Plus className="size-4" />
+                </button>
+                <span className="text-sm text-muted">{unitLabel(p.unite_label, numericQte)}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between rounded-2xl bg-mint/60 px-4 py-2.5">
+                <span className="text-sm text-muted">Sous-total estimé</span>
+                <span className="font-semibold text-green">
+                  {(numericQte * Number(p.price)).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DT
+                </span>
+              </div>
+              <Btn onClick={submit} icon={ShoppingCart} size="lg" disabled={busy || !qte} className="mt-1 w-full">
+                Confirmer l'ajout
+              </Btn>
+            </div>
+          </>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+export default function MarketplaceDetail({
+  product: p,
+  can_edit,
+  can_delete,
+  can_contact,
+  can_add_to_cart,
+  in_cart_qty = 0,
+  add_to_cart_url,
+  edit_url,
+  delete_url,
+  mark_sold_url,
+  list_url,
+}) {
+  const { auth, urls } = usePage().props;
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [showCart, setShowCart] = useState(false);
+
   const sold = p.status === "vendu";
   const retired = p.status === "retire";
+  const outOfStock = p.status === "disponible" && p.en_rupture;
 
   function doDelete() {
     router.post(delete_url, {}, { onStart: () => setBusy(true), onFinish: () => setBusy(false) });
@@ -34,7 +198,11 @@ export default function MarketplaceDetail({ product: p, can_edit, can_delete, ca
           {/* Header */}
           <motion.header initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={STATUS_TONE[p.status]} dot>{p.status_label}</Badge>
+              {outOfStock ? (
+                <Badge tone="coral" dot>Rupture de stock</Badge>
+              ) : (
+                <Badge tone={STATUS_TONE[p.status]} dot>{p.status_label}</Badge>
+              )}
               <Badge tone="muted">{p.category_label}</Badge>
               {p.mine && <Badge tone="lime">Mon annonce</Badge>}
               {retired && <Badge tone="coral">Retiré par l'administration</Badge>}
@@ -71,15 +239,27 @@ export default function MarketplaceDetail({ product: p, can_edit, can_delete, ca
         {/* Sidebar */}
         <div className="flex flex-col gap-5 lg:sticky lg:top-8">
           {/* Prix */}
-          <Card className="grain relative overflow-hidden bg-deep p-6 text-paper">
+          <div className="grain relative overflow-hidden rounded-[1.75rem] bg-deep p-6 text-paper">
             <div aria-hidden="true" className="absolute -top-16 -right-16 size-48 rounded-full bg-green/40 blur-3xl" />
             <div className="relative">
-              <p className="text-xs font-semibold tracking-[0.14em] text-paper/50 uppercase">Prix</p>
-              <p className="mt-2 font-serif text-5xl font-medium text-lime">{Number(p.price).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-2xl">DT</span></p>
-              {sold && <p className="mt-2 text-sm text-paper/60">Ce produit a été vendu.</p>}
-              {retired && <p className="mt-2 text-sm text-paper/60">Cette annonce a été retirée.</p>}
+              <p className="text-xs font-semibold tracking-[0.14em] text-paper/60 uppercase">Prix</p>
+              <p className="mt-2 font-serif text-5xl font-medium text-lime">
+                {Number(p.price).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-2xl">DT</span>
+                {p.unite_label && <span className="ml-1.5 text-lg font-normal text-paper/75">/ {p.unite_label}</span>}
+              </p>
+              {p.quantite != null && (
+                <p className="mt-2 text-sm text-paper/75">
+                  {outOfStock ? (
+                    <span className="font-semibold text-coral">Rupture de stock</span>
+                  ) : (
+                    <span>Stock : <span className="font-semibold text-lime">{p.quantite}</span> {unitLabel(p.unite_label, p.quantite)}</span>
+                  )}
+                </p>
+              )}
+              {sold && <p className="mt-2 text-sm text-paper/70">Ce produit a été vendu.</p>}
+              {retired && <p className="mt-2 text-sm text-paper/70">Cette annonce a été retirée.</p>}
             </div>
-          </Card>
+          </div>
 
           {/* Infos pratiques */}
           <Card className="p-6">
@@ -91,8 +271,22 @@ export default function MarketplaceDetail({ product: p, can_edit, can_delete, ca
               </div>
               <div className="flex items-start gap-3">
                 <Package className="mt-0.5 size-4 shrink-0 text-green" />
-                <div><dt className="text-xs text-muted">Statut</dt><dd className="font-medium">{p.status_label}</dd></div>
+                <div>
+                  <dt className="text-xs text-muted">Statut</dt>
+                  <dd className="font-medium">{outOfStock ? "Rupture de stock" : p.status_label}</dd>
+                </div>
               </div>
+              {p.quantite != null && (
+                <div className="flex items-start gap-3">
+                  <ShoppingCart className="mt-0.5 size-4 shrink-0 text-green" />
+                  <div>
+                    <dt className="text-xs text-muted">Quantité / Unité</dt>
+                    <dd className="font-medium">
+                      {outOfStock ? "Rupture de stock" : `${p.quantite} ${unitLabel(p.unite_label, p.quantite)}`}
+                    </dd>
+                  </div>
+                </div>
+              )}
               <div className="flex items-start gap-3">
                 <User className="mt-0.5 size-4 shrink-0 text-green" />
                 <div><dt className="text-xs text-muted">Vendeur</dt><dd className="font-medium">{p.author}</dd></div>
@@ -110,7 +304,22 @@ export default function MarketplaceDetail({ product: p, can_edit, can_delete, ca
             </dl>
           </Card>
 
-          {/* Contact */}
+          {/* Bouton Ajouter au panier */}
+          {can_add_to_cart && (
+            <Btn onClick={() => setShowCart(true)} variant="lime" icon={ShoppingCart} size="lg" className="w-full">
+              {in_cart_qty > 0 ? `Ajouter au panier (${in_cart_qty} dans le panier)` : "Ajouter au panier"}
+            </Btn>
+          )}
+
+          {/* Message rupture de stock */}
+          {auth.user && !auth.user.is_staff && !p.mine && outOfStock && (
+            <div className="rounded-2xl border border-coral/30 bg-coral/10 px-5 py-4 text-center">
+              <p className="text-sm font-semibold text-[#b4532f]">Rupture de stock</p>
+              <p className="mt-1 text-xs text-[#b4532f]/75">Ce produit n'est plus disponible pour le moment.</p>
+            </div>
+          )}
+
+          {/* Contact vendeur */}
           {can_contact && p.phone && (
             <Btn href={`tel:${p.phone}`} external icon={Phone} size="lg" className="w-full">
               Appeler le vendeur
@@ -151,6 +360,19 @@ export default function MarketplaceDetail({ product: p, can_edit, can_delete, ca
           )}
         </div>
       </div>
+
+      {/* Modal Ajouter au panier */}
+      <AnimatePresence>
+        {showCart && (
+          <AddToCartModal
+            product={p}
+            inCartQty={in_cart_qty}
+            addToCartUrl={add_to_cart_url}
+            panierUrl={urls.marketplace_panier}
+            onClose={() => setShowCart(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

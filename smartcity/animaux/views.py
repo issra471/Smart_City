@@ -22,7 +22,7 @@ from inertia import render as inertia_render
 
 from accounts.admin_views import StaffRequiredMixin
 from core.inertia_utils import InertiaFormMixin, InertiaMixin, display_name, iso, serialize_form
-from .forms import GestionForm, ObservationForm, PartenaireForm
+from .forms import ActionRapideForm, GestionForm, ObservationForm, PartenaireForm
 from .models import Observation, Partenaire, SuiviAnimal
 
 
@@ -323,18 +323,24 @@ def rapide(request, pk):
     if not request.user.is_staff:
         raise PermissionDenied
     o = get_object_or_404(Observation, pk=pk, cas__in=Observation.URGENCES)
+    form = ActionRapideForm(request.POST, observation=o)
+    if not form.is_valid():
+        errors = " ".join(message for field_errors in form.errors.values() for message in field_errors)
+        messages.error(request, f"Mise à jour refusée : {errors}")
+        return redirect(safe_next(request, reverse("animaux:admin")))
+
     avant = {"statut": o.statut, "partenaire_id": o.partenaire_id}
-    statut, priorite, partenaire, resultat = (request.POST.get(k) for k in ("statut", "priorite", "partenaire", "resultat"))
-    if statut in ("ouvert", "en_cours", "resolu"):
-        o.statut = statut
-        if statut != "resolu":
+    data = form.cleaned_data
+    if "statut" in request.POST:
+        o.statut = data["statut"]
+        if o.statut != "resolu":
             o.resultat = ""
-    if priorite in dict(Observation.PRIORITES):
-        o.priorite = priorite
-    if partenaire is not None:
-        o.partenaire = Partenaire.objects.filter(pk=partenaire).first() if partenaire else None
-    if resultat in dict(Observation.RESULTATS) and o.statut == "resolu":
-        o.resultat = resultat
+    if "priorite" in request.POST:
+        o.priorite = data["priorite"]
+    if "partenaire" in request.POST:
+        o.partenaire = data["partenaire"]
+    if "resultat" in request.POST and o.statut == "resolu":
+        o.resultat = data["resultat"]
     o.save()
     note_gestion(o, avant, request.user)
     messages.success(request, f"« {o.titre} » mis à jour.")
